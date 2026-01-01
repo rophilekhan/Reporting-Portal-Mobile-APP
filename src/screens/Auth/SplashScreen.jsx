@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Animated, StyleSheet, Text, Image, Dimensions, StatusBar } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { COLORS } from '../../config/theme'; // Adjust path if necessary
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage
+import { COLORS } from '../../config/theme';
 
 const { width, height } = Dimensions.get('window');
 
@@ -12,16 +13,14 @@ const SplashScreen = ({ navigation }) => {
   const moveAnim = useRef(new Animated.Value(0)).current;   // For slight upward movement
 
   useEffect(() => {
-    // Animation Sequence
+    // 1. Start Animation Sequence
     Animated.sequence([
-      // 1. Spring the logo in
       Animated.spring(scaleAnim, {
         toValue: 1,
         friction: 5,
         tension: 40,
         useNativeDriver: true,
       }),
-      // 2. Fade in text and move it up slightly
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
@@ -36,12 +35,32 @@ const SplashScreen = ({ navigation }) => {
       ]),
     ]).start();
 
-    // Navigate after 3 seconds total (adjust as needed)
-    const timer = setTimeout(() => {
-      navigation.replace('Login'); // Replace 'Login' with the actual name of your login screen route
-    }, 5000);
+    // 2. Check Login Status Logic
+    const determineNavigation = async () => {
+      try {
+        // Retrieve the session data saved in authService.js
+        const userInfo = await AsyncStorage.getItem('userInfo');
 
-    return () => clearTimeout(timer);
+        // Wait a minimum amount of time (e.g., 3 seconds) so the user sees the Splash animation
+        setTimeout(() => {
+          if (userInfo !== null) {
+            // Data exists, user is logged in -> Go to Dashboard
+            navigation.replace('DrawerRoot');
+          } else {
+            // No data, user is logged out -> Go to Login
+            navigation.replace('Login');
+          }
+        }, 3000); // 3 Seconds delay
+
+      } catch (error) {
+        console.error("Splash Screen Auth Check Error:", error);
+        // Fallback to login on error
+        navigation.replace('Login');
+      }
+    };
+
+    determineNavigation();
+
   }, []);
 
   return (
@@ -55,13 +74,13 @@ const SplashScreen = ({ navigation }) => {
         end={{ x: 1, y: 1 }}
         style={styles.gradientBackground}
       >
-        {/* Decorative Circles - Matching Login Screen */}
+        {/* Decorative Circles */}
         <View style={styles.decorativeCircle1} />
         <View style={styles.decorativeCircle2} />
         <View style={styles.decorativeCircle3} />
         <View style={styles.decorativeCircle4} />
 
-        {/* Animated Logo Container with Glow - Matching Login Screen */}
+        {/* Animated Logo Container with Glow */}
         <Animated.View style={[styles.logoContainerOuter, { transform: [{ scale: scaleAnim }] }]}>
           <View style={styles.logoContainerInner}>
             <Image 
@@ -72,13 +91,13 @@ const SplashScreen = ({ navigation }) => {
           </View>
         </Animated.View>
 
-        {/* Animated Text - Matching Login Screen */}
+        {/* Animated Text */}
         <Animated.View style={[styles.textContainer, { opacity: fadeAnim, transform: [{ translateY: moveAnim }] }]}>
           <Text style={styles.title}>Xinacle <Text style={styles.highlight}>ERP</Text></Text>
           <Text style={styles.subtitle}>Simplifying Business Processes</Text>
         </Animated.View>
 
-        {/* Powered By Footer - Matching Login Footer Style */}
+        {/* Powered By Footer */}
         <View style={styles.poweredByContainer}>
           <Text style={styles.poweredByText}>Powered by</Text>
           <Text style={styles.poweredByLink}>Hassoft Solutions</Text>
@@ -98,7 +117,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     overflow: 'hidden',
   },
-  // Decorative Circles - Matching Login
   decorativeCircle1: {
     position: 'absolute',
     width: 180,
@@ -148,10 +166,10 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   logoContainerInner: {
-    width: width * 0.45, // Responsive width
+    width: width * 0.45, 
     height: width * 0.45,
     backgroundColor: 'white',
-    borderRadius: (width * 0.45) / 2, // Make it a perfect circle
+    borderRadius: (width * 0.45) / 2, 
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -173,7 +191,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   highlight: {
-    color: '#e98a57', // Secondary color matching login
+    color: '#e98a57', 
     fontWeight: '800',
   },
   subtitle: {
@@ -183,7 +201,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     fontWeight: '500',
   },
-  // Powered By Footer - Matching Login Footer
   poweredByContainer: {
     position: 'absolute',
     bottom: 40,
@@ -193,12 +210,12 @@ const styles = StyleSheet.create({
   },
   poweredByText: {
     color: 'rgba(255,255,255,0.7)',
-    fontSize: 12,
+    fontSize: 20,
     marginRight: 4,
   },
   poweredByLink: {
-    color: '#e98a57', // Secondary color
-    fontSize: 12,
+    color: '#e98a57', 
+    fontSize: 20,
     fontWeight: '600',
   },
 });

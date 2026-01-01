@@ -11,14 +11,16 @@ import {
   Dimensions,
   Keyboard,
   Image,
-  TouchableWithoutFeedback,
   StatusBar,
   Animated,
-  Linking
+  Linking,
+  ScrollView
 } from 'react-native';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import LinearGradient from 'react-native-linear-gradient';
-import AsyncStorage from '@react-native-async-storage/async-storage'; // IMPORT THIS
+import AsyncStorage from '@react-native-async-storage/async-storage'; 
+import { useSafeAreaInsets } from 'react-native-safe-area-context'; // ✅ IMPORTED
+
 import { COLORS } from '../../config/theme'; 
 import { loginUser } from '../../services/authService';
 
@@ -26,6 +28,7 @@ const { width, height } = Dimensions.get('window');
 
 // Custom Toast Component
 const CustomToast = ({ visible, message, type }) => {
+  const insets = useSafeAreaInsets(); // ✅ Adjust Toast position based on Notch
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -40,9 +43,12 @@ const CustomToast = ({ visible, message, type }) => {
 
   const bg = type === 'error' ? '#FF5252' : '#4CAF50';
   const iconName = type === 'error' ? 'alert-circle' : 'checkmark-circle';
+  
+  // Dynamic top position based on safe area
+  const topPosition = Platform.OS === 'ios' ? insets.top + 10 : 40;
 
   return (
-    <Animated.View style={[styles.toastContainer, { opacity: fadeAnim, backgroundColor: bg }]}>
+    <Animated.View style={[styles.toastContainer, { opacity: fadeAnim, backgroundColor: bg, top: topPosition }]}>
       <Ionicons name={iconName} size={24} color="white" style={{ marginRight: 10 }} />
       <Text style={styles.toastText}>{message}</Text>
     </Animated.View>
@@ -50,10 +56,12 @@ const CustomToast = ({ visible, message, type }) => {
 };
 
 const LoginScreen = ({ navigation }) => {
+  const insets = useSafeAreaInsets(); // ✅ Hook to get safe area dimensions
+  
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false); // NEW STATE for Remember Me
+  const [rememberMe, setRememberMe] = useState(false); 
   const [isLoading, setIsLoading] = useState(false);
 
   // Toast State
@@ -66,7 +74,6 @@ const LoginScreen = ({ navigation }) => {
     setToast(prev => ({ ...prev, timeoutId }));
   };
 
-  // --- 1. CHECK FOR SAVED LOGIN ON MOUNT ---
   useEffect(() => {
     const checkSavedLogin = async () => {
       try {
@@ -74,14 +81,10 @@ const LoginScreen = ({ navigation }) => {
         const savedPassword = await AsyncStorage.getItem('password');
         const savedRemember = await AsyncStorage.getItem('rememberMe');
 
-        // If data exists, pre-fill it
         if (savedRemember === 'true' && savedUsername && savedPassword) {
             setUsername(savedUsername);
             setPassword(savedPassword);
             setRememberMe(true);
-            
-            // OPTIONAL: Uncomment the line below if you want to AUTO-LOGIN immediately
-            // performSilentLogin(savedUsername, savedPassword);
         }
       } catch (error) {
         console.log('Error loading saved credentials', error);
@@ -90,19 +93,6 @@ const LoginScreen = ({ navigation }) => {
 
     checkSavedLogin();
   }, []);
-
-  // Optional: Helper for silent login (if you want auto-redirect)
-  /*
-  const performSilentLogin = async (usr, pwd) => {
-      setIsLoading(true);
-      try {
-          await loginUser(usr, pwd);
-          navigation.replace('DrawerRoot');
-      } catch (e) {
-          setIsLoading(false); // Stop loading if auto-login fails
-      }
-  }
-  */
 
   const handleLogin = async () => {
     Keyboard.dismiss();
@@ -116,7 +106,6 @@ const LoginScreen = ({ navigation }) => {
     try {
       await loginUser(username, password);
 
-      // --- 2. SAVE OR CLEAR CREDENTIALS BASED ON CHECKBOX ---
       if (rememberMe) {
           await AsyncStorage.setItem('username', username);
           await AsyncStorage.setItem('password', password);
@@ -156,45 +145,53 @@ const LoginScreen = ({ navigation }) => {
   };
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <View style={styles.mainContainer}>
-        <StatusBar barStyle="light-content" backgroundColor="#003892" />
-        <CustomToast visible={toast.visible} message={toast.message} type={toast.type} />
+    <View style={styles.mainContainer}>
+      <StatusBar barStyle="light-content" backgroundColor="#003892" translucent={true} />
+      <CustomToast visible={toast.visible} message={toast.message} type={toast.type} />
 
-        {/* Curved Gradient Header */}
-        <LinearGradient
-          colors={['#003892', '#0055c8', '#e98a57']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.headerContainer}
+      <KeyboardAvoidingView 
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView 
+          contentContainerStyle={{ flexGrow: 1 }}
+          keyboardShouldPersistTaps="handled"
+          bounces={false}
+          showsVerticalScrollIndicator={false}
         >
-          {/* Animated decorative elements */}
-          <View style={styles.decorativeCircle1} />
-          <View style={styles.decorativeCircle2} />
-          <View style={styles.decorativeCircle3} />
-          <View style={styles.decorativeCircle4} />
-          
-          {/* Logo with elegant glow */}
-          <View style={styles.logoOuterGlow}>
-            <View style={styles.logoContainer}>
-              <Image
-                source={require('../../assets/xinacle-logo.png')}
-                style={styles.logoImage}
-                resizeMode="contain"
-              />
-            </View>
-          </View>
-          
-          <Text style={styles.brandText}>Xinacle <Text style={styles.brandHighlight}>ERP</Text></Text>
-          <Text style={styles.tagline}>Simplifying Business Processes.</Text>
-        </LinearGradient>
-
-        {/* White curved section */}
-        <View style={styles.whiteSection}>
-          <KeyboardAvoidingView 
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            style={styles.formContainer}
+          {/* Curved Gradient Header with Safe Area Padding */}
+          <LinearGradient
+            colors={['#003892', '#0055c8', '#e98a57']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[
+              styles.headerContainer, 
+              { paddingTop: insets.top } // ✅ Fix: Content respects top notch/status bar
+            ]}
           >
+            {/* Animated decorative elements */}
+            <View style={styles.decorativeCircle1} />
+            <View style={styles.decorativeCircle2} />
+            <View style={styles.decorativeCircle3} />
+            <View style={styles.decorativeCircle4} />
+            
+            {/* Logo with elegant glow */}
+            <View style={styles.logoOuterGlow}>
+              <View style={styles.logoContainer}>
+                <Image
+                  source={require('../../assets/xinacle-logo.png')}
+                  style={styles.logoImage}
+                  resizeMode="contain"
+                />
+              </View>
+            </View>
+            
+            <Text style={styles.brandText}>Xinacle <Text style={styles.brandHighlight}>ERP</Text></Text>
+            <Text style={styles.tagline}>Simplifying Business Processes.</Text>
+          </LinearGradient>
+
+          {/* White curved section */}
+          <View style={[styles.whiteSection, { paddingBottom: insets.bottom }]}> 
             <View style={styles.formContent}>
               <Text style={styles.loginTitle}>Welcome Back!</Text>
               <Text style={styles.loginSubtitle}>Sign in to continue</Text>
@@ -251,10 +248,9 @@ const LoginScreen = ({ navigation }) => {
                 </View>
               </View>
               
-              {/* --- 3. UPDATED REMEMBER ME UI --- */}
+              {/* Remember Me UI */}
               <View style={styles.optionsRow}>
                 <TouchableOpacity style={styles.rememberContainer} onPress={toggleRememberMe} activeOpacity={0.8}>
-                  {/* Changed Checkbox Style based on State */}
                   <View style={[styles.checkbox, rememberMe && styles.checkboxActive]}>
                       {rememberMe && <Ionicons name="checkmark" size={12} color="white" />}
                   </View>
@@ -292,18 +288,19 @@ const LoginScreen = ({ navigation }) => {
 
             </View>
             
-            {/* Footer */}
-            <View style={styles.footerContainer}>
+            {/* Footer with Safe Area Handling */}
+            {/* ✅ Fix: Added padding bottom calculation to handle Home Indicator */}
+            <View style={[styles.footerContainer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
               <Text style={styles.footerText}>© 2026 </Text>
               <TouchableOpacity onPress={handleHassoftLink}>
                 <Text style={styles.footerLink}>Hassoft Solutions</Text>
               </TouchableOpacity>
               <Text style={styles.footerText}> . All Rights Reserved.</Text>
             </View>
-          </KeyboardAvoidingView>
-        </View>
-      </View>
-    </TouchableWithoutFeedback>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 };
 
@@ -315,17 +312,13 @@ const styles = StyleSheet.create({
 
   // Header Styles
   headerContainer: {
-    height: height * 0.42,
+    height: height * 0.45, 
+    width: '100%',
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: width * 0.65,
-    justifyContent: 'center',
+    justifyContent: 'center', // This centers strictly; paddingTop (added inline) will shift visual center down slightly, which is good.
     alignItems: 'center',
     overflow: 'hidden',
-    elevation: 12,
-    shadowColor: "#003892",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
     paddingBottom: 30,
   },
   decorativeCircle1: {
@@ -421,18 +414,16 @@ const styles = StyleSheet.create({
     borderTopRightRadius: width * 0.2,
     marginTop: -35,
     paddingTop: 35,
+    minHeight: height * 0.55, 
     elevation: 8,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.12,
     shadowRadius: 6,
+    justifyContent: 'space-between' // Ensures footer stays at bottom if content is short
   },
 
-  formContainer: {
-    flex: 1,
-  },
   formContent: {
-    flex: 1,
     paddingHorizontal: 30,
     paddingTop: 10,
   },
@@ -510,9 +501,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  // --- Checkbox Styles ---
   checkbox: {
-    width: 20, // Slightly larger for better tap target
+    width: 20, 
     height: 20,
     borderRadius: 5,
     borderWidth: 2,
@@ -523,7 +513,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent'
   },
   checkboxActive: {
-      backgroundColor: '#003892', // Fill with blue when active
+      backgroundColor: '#003892', 
   },
   rememberText: {
     color: '#666',
@@ -569,8 +559,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 15,
-    marginTop: 5,
+    marginTop: 10,
+    // Padding bottom handled by inline style in render based on insets
   },
   footerText: {
     color: '#999',
@@ -586,7 +576,6 @@ const styles = StyleSheet.create({
   // Toast
   toastContainer: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 60 : 40,
     left: 20,
     right: 20,
     padding: 16,

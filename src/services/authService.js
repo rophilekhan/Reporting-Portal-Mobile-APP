@@ -1,30 +1,42 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
-import { API_BASE_URL, ENDPOINTS } from '../services/apiConfig';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL } from './apiConfig'; 
 
 export const loginUser = async (username, password) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}${ENDPOINTS.LOGIN}`, {
-      UserName: username,
-      Password: password
-    });
-
+    // 1. API Call
+    const response = await axios.post(`${API_BASE_URL}/login`, { username, password });
+    
+    // 2. Handle Success based on your JSON structure
     if (response.data && response.data.success) {
-      // 1. Save Full Response
-      await AsyncStorage.setItem('fullAuthData', JSON.stringify(response.data));
+      const { user, menus } = response.data;
+
+      // Save the WHOLE user object (UserID, UserName, userRole, CompanyBranchID)
+      await AsyncStorage.setItem('userInfo', JSON.stringify(user));
       
-      // 2. Extract Critical Info
-      const user = response.data.user || {};
-      await AsyncStorage.setItem('userId', user.UserID?.toString() || '');
-      await AsyncStorage.setItem('userName', user.UserName || '');
-      await AsyncStorage.setItem('companyBranchId', user.CompanyBranchID?.toString() || '1'); // Default to 1 if missing
+      // Save Menus
+      await AsyncStorage.setItem('userMenus', JSON.stringify(menus));
+
+      // Save individual keys for easier access if needed
+      await AsyncStorage.setItem('companyBranchId', user.CompanyBranchID.toString());
+      await AsyncStorage.setItem('userID', user.UserID.toString());
+      await AsyncStorage.setItem('username', user.UserName); // For Login Screen pre-fill
 
       return response.data;
     } else {
-      throw new Error(response.data.message || 'Login failed');
+      throw new Error(response.data.message || "Login failed");
     }
   } catch (error) {
-    console.error("Login Error:", error);
     throw error;
+  }
+};
+
+export const logoutUser = async () => {
+  try {
+    // Clear Session Data
+    await AsyncStorage.multiRemove(['userInfo', 'userMenus', 'companyBranchId', 'userID']);
+    // We keep 'username' & 'password' & 'rememberMe' for the Login screen logic
+  } catch (e) {
+    console.error(e);
   }
 };

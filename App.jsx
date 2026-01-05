@@ -14,7 +14,7 @@ import DashboardScreen from './src/screens/Dashboard/DashboardScreen';
 import UserProfileScreen from './src/screens/Dashboard/UserProfileScreen';
 import GenericReportScreen from './src/screens/Reports/GenericReportScreen';
 import CustomDrawerContent from './src/navigation/CustomDrawerContent';
-
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 // Context
 import { BranchProvider } from './src/context/BranchContext'; 
 
@@ -51,6 +51,8 @@ const DashboardStackNavigator = () => {
 
 // --- 2. BOTTOM TABS ---
 const DashboardTabNavigator = () => {
+  const insets = useSafeAreaInsets(); // Get dynamic system insets
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -63,10 +65,28 @@ const DashboardTabNavigator = () => {
         },
         tabBarActiveTintColor: COLORS.primary,
         tabBarInactiveTintColor: 'gray',
-        tabBarStyle: { paddingBottom: 5, height: 60 },
+        tabBarHideOnKeyboard: true,
+        
+        // --- UPDATED TAB BAR STYLE USING INSETS.BOTTOM ---
+        tabBarStyle: { 
+          backgroundColor: '#ffffff',
+          borderTopWidth: 1,
+          borderTopColor: '#e0e0e0',
+          // paddingBottom: insets.bottom > 0 ? insets.bottom : 5, 
+          // paddingTop: 2,
+          // elevation: 8,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '500',
+          marginBottom: insets.bottom > 0 ? 0 : 5, // Adjust label spacing based on inset
+        }
       })}
     >
-      {/* Important: Name this 'HomeStack' so we can target it */}
       <Tab.Screen 
         name="HomeStack" 
         component={DashboardStackNavigator} 

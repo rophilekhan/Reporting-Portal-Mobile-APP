@@ -1,106 +1,104 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Animated, StyleSheet, Text, Image, Dimensions, StatusBar } from 'react-native';
+import { 
+  View, Animated, StyleSheet, Text, Image, StatusBar, 
+  useWindowDimensions, Platform 
+} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../config/theme';
 
-const { width, height } = Dimensions.get('window');
-
 const SplashScreen = ({ navigation }) => {
-  // Animation Values
-  const scaleAnim = useRef(new Animated.Value(0)).current;  // For Logo Pop
-  const fadeAnim = useRef(new Animated.Value(0)).current;   // For Text Fade
-  const moveAnim = useRef(new Animated.Value(0)).current;   // For slight upward movement
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  
+  const isLandscape = screenWidth > screenHeight;
+  const minDimension = Math.min(screenWidth, screenHeight);
+  // Adaptive scale: smaller on landscape to fit everything, larger on portrait
+  const scale = isLandscape ? (screenHeight / 480) : (screenWidth / 375);
+
+  const scaleAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // 1. Start Animation Sequence
-    Animated.sequence([
+    // Animation Sequence
+    Animated.parallel([
       Animated.spring(scaleAnim, {
         toValue: 1,
-        friction: 5,
+        friction: 6,
         tension: 40,
         useNativeDriver: true,
       }),
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-        Animated.timing(moveAnim, {
-          toValue: -20, // Move up 20 pixels
-          duration: 800,
-          useNativeDriver: true,
-        }),
-      ]),
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 1000,
+        delay: 200,
+        useNativeDriver: true,
+      }),
     ]).start();
 
-    // 2. Check Login Status Logic
     const determineNavigation = async () => {
       try {
-        // Retrieve the session data saved in authService.js
         const userInfo = await AsyncStorage.getItem('userInfo');
-
-        // Wait a minimum amount of time (e.g., 3 seconds) so the user sees the Splash animation
+        // Reduced delay to 2.5 seconds for better UX
         setTimeout(() => {
-          if (userInfo !== null) {
-            // Data exists, user is logged in -> Go to Dashboard
-            navigation.replace('DrawerRoot');
-          } else {
-            // No data, user is logged out -> Go to Login
-            navigation.replace('Login');
-          }
-        }, 3000); // 3 Seconds delay
-
+          navigation.replace(userInfo ? 'DrawerRoot' : 'Login');
+        }, 3000); 
       } catch (error) {
-        console.error("Splash Screen Auth Check Error:", error);
-        // Fallback to login on error
         navigation.replace('Login');
       }
     };
-
     determineNavigation();
-
   }, []);
+
+  // Responsive Sizes
+  const logoSize = (isLandscape ? screenHeight * 0.25 : screenWidth * 0.4) * Math.min(scale, 1.2);
+  const containerSize = logoSize + 40 * scale;
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#003892" />
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       
-      {/* Full Screen Gradient Background */}
       <LinearGradient
         colors={['#003892', '#0055c8', '#e98a57']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.gradientBackground}
+        style={StyleSheet.absoluteFill}
       >
-        {/* Decorative Circles */}
-        <View style={styles.decorativeCircle1} />
-        <View style={styles.decorativeCircle2} />
-        <View style={styles.decorativeCircle3} />
-        <View style={styles.decorativeCircle4} />
+        {/* Decorative Background Layer */}
+        <View style={StyleSheet.absoluteFill} pointerEvents="none">
+            <View style={[styles.circle, styles.circle1, { width: 200 * scale, height: 200 * scale }]} />
+            <View style={[styles.circle, styles.circle2, { width: 120 * scale, height: 120 * scale }]} />
+        </View>
 
-        {/* Animated Logo Container with Glow */}
-        <Animated.View style={[styles.logoContainerOuter, { transform: [{ scale: scaleAnim }] }]}>
-          <View style={styles.logoContainerInner}>
-            <Image 
-              source={require('../../assets/xinacle-logo.png')} 
-              style={styles.logoImage} 
-              resizeMode="contain" 
-            />
-          </View>
-        </Animated.View>
+        {/* Center Content Layer */}
+        <View style={styles.centerWrapper}>
+          <Animated.View style={[
+            styles.logoWrapper,
+            { transform: [{ scale: scaleAnim }] }
+          ]}>
+            <View style={[styles.logoContainer, { width: containerSize, height: containerSize, borderRadius: containerSize / 2 }]}>
+              <Image 
+                source={require('../../assets/xinacle-logo.png')} 
+                style={{ width: logoSize, height: logoSize }}
+                resizeMode="contain" 
+              />
+            </View>
+          </Animated.View>
 
-        {/* Animated Text */}
-        <Animated.View style={[styles.textContainer, { opacity: fadeAnim, transform: [{ translateY: moveAnim }] }]}>
-          <Text style={styles.title}>Xinacle <Text style={styles.highlight}>ERP</Text></Text>
-          <Text style={styles.subtitle}>Simplifying Business Processes</Text>
-        </Animated.View>
+          <Animated.View style={{ opacity: fadeAnim, alignItems: 'center' }}>
+            <Text style={[styles.title, { fontSize: 36 * scale }]}>
+              Xinacle <Text style={styles.highlight}>ERP</Text>
+            </Text>
+            <Text style={[styles.subtitle, { fontSize: 16 * scale }]}>
+              Simplifying Business Processes
+            </Text>
+          </Animated.View>
+        </View>
 
-        {/* Powered By Footer */}
-        <View style={styles.poweredByContainer}>
-          <Text style={styles.poweredByText}>Powered by</Text>
-          <Text style={styles.poweredByLink}>Hassoft Solutions</Text>
+        {/* Footer Layer */}
+        <View style={[styles.footer, { bottom: insets.bottom + 30 }]}>
+       <Text style={[styles.footerText, { fontSize: 18 * scale }]}>
+  Powered by <Text style={[styles.footerLink, { fontSize: 20 * scale }]} >Hassoft Solutions</Text>
+</Text>
         </View>
       </LinearGradient>
     </View>
@@ -108,116 +106,79 @@ const SplashScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
+  container: {
+    flex: 1,
   },
-  gradientBackground: {
+  centerWrapper: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    overflow: 'hidden',
+    paddingHorizontal: 20,
   },
-  decorativeCircle1: {
-    position: 'absolute',
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    top: -40,
-    left: -30,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  decorativeCircle2: {
-    position: 'absolute',
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(233,138,87,0.15)',
-    top: height * 0.3,
-    right: 30,
-    borderWidth: 2,
-    borderColor: 'rgba(233,138,87,0.2)',
-  },
-  decorativeCircle3: {
-    position: 'absolute',
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    bottom: height * 0.4,
-    left: 50,
-  },
-  decorativeCircle4: {
-    position: 'absolute',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(233,138,87,0.2)',
-    top: height * 0.25,
-    right: width * 0.25,
-  },
-  logoContainerOuter: {
+  logoWrapper: {
     marginBottom: 30,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.2,
-    shadowRadius: 15,
-    elevation: 10,
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.3,
+        shadowRadius: 10,
+      },
+      android: { elevation: 15 },
+    }),
   },
-  logoContainerInner: {
-    width: width * 0.45, 
-    height: width * 0.45,
+  logoContainer: {
     backgroundColor: 'white',
-    borderRadius: (width * 0.45) / 2, 
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
   },
-  logoImage: {
-    width: '80%',
-    height: '80%',
-  },
-  textContainer: {
-    alignItems: 'center',
-    marginBottom: 60,
-  },
-  title: { 
-    fontSize: 36, 
-    color: 'white', 
-    fontWeight: '800', 
+  title: {
+    color: 'white',
+    fontWeight: '900',
     textAlign: 'center',
-    letterSpacing: 1,
-    marginBottom: 10,
   },
   highlight: {
-    color: '#e98a57', 
-    fontWeight: '800',
+    color: '#e98a57',
   },
   subtitle: {
-    color: 'rgba(255,255,255,0.9)',
-    fontSize: 16,
-    textAlign: 'center',
-    letterSpacing: 0.5,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 5,
     fontWeight: '500',
   },
-  poweredByContainer: {
+  footer: {
+  position: 'absolute',
+  left: 0,
+  right: 0,
+  alignItems: 'center',
+},
+
+footerText: {
+  color: 'rgba(255,255,255,0.6)',
+    fontWeight: 'bold',     
+},
+
+footerLink: {
+  color: '#e98746ff',
+  fontWeight: 'bold',
+  textShadowColor: 'rgba(0,0,0,0.8)',    // strong dark shadow
+  textShadowOffset: { width: 1, height: 1 },
+  textShadowRadius: 4,                   // larger blur for glow effect
+},
+
+  circle: {
     position: 'absolute',
-    bottom: 40,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.05)',
   },
-  poweredByText: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 20,
-    marginRight: 4,
+  circle1: {
+    top: -50,
+    left: -50,
   },
-  poweredByLink: {
-    color: '#e98a57', 
-    fontSize: 20,
-    fontWeight: '600',
-  },
+  circle2: {
+    bottom: '20%',
+    right: -30,
+    backgroundColor: 'rgba(233,138,87,0.1)',
+  }
 });
 
 export default SplashScreen;

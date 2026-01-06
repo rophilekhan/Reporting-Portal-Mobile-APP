@@ -3,26 +3,17 @@ import { View, Text, FlatList, StyleSheet, ScrollView, TouchableOpacity, Activit
 import Ionicons from '@react-native-vector-icons/ionicons';
 import { COLORS } from '../../config/theme';
 import { getReportColumns } from '../../config/columnConfig'; 
-import { fetchSubGrid } from '../../services/reportService';   
+import { fetchSubGrid } from '../../services/reportService';    
 
 const DataGrid = ({ 
-  data, 
-  columns, 
-  isGrouped, 
-  groupBy, 
-  hasSubGrid, 
-  subApi,     
-  subGridKey, 
-  pk = 'ID',   
-  filters = {},
-  onPrintRow // ✅ Received
+  data, columns, isGrouped, groupBy, hasSubGrid, 
+  subApi, subGridKey, pk = 'ID', filters = {}, onPrintRow 
 }) => {
   const [containerWidth, setContainerWidth] = useState(0);
   const [expandedId, setExpandedId] = useState(null);
   const [subData, setSubData] = useState([]);
   const [subLoading, setSubLoading] = useState(false);
 
-  // ... (ProcessedData & EffectiveColumns same as before) ...
   const processedData = useMemo(() => {
     if (!isGrouped || !groupBy) return data;
     const groupedList = [];
@@ -71,13 +62,17 @@ const DataGrid = ({
       <ScrollView horizontal showsHorizontalScrollIndicator={true}>
         <View style={styles.subGridWrapper}>
           <View style={styles.subHeaderRow}>
-            {subCols.map((col, i) => <View key={i} style={[styles.subCell, { width: col.width || 100 }]}><Text style={styles.subHeaderText}>{col.title}</Text></View>)}
+            {subCols.map((col, i) => (
+              <View key={i} style={[styles.subCell, { width: col.width || 100 }]}>
+                <Text style={styles.subHeaderText} numberOfLines={2}>{col.title}</Text>
+              </View>
+            ))}
           </View>
           {subData.map((subItem, idx) => (
             <View key={idx} style={[styles.subRow, idx % 2 !== 0 && { backgroundColor: '#F1F8E9' }]}>
               {subCols.map((col, i) => (
                 <View key={i} style={[styles.subCell, { width: col.width || 100 }]}>
-                  <Text style={[styles.subCellText, { textAlign: (col.type === 'money' || col.type === 'number' || col.total) ? 'right' : 'center' }]}>
+                  <Text style={[styles.subCellText, { textAlign: (col.type === 'money' || col.type === 'number' || col.total) ? 'right' : 'center' }]} numberOfLines={2}>
                     {col.type === 'money' ? formatCurrency(subItem[col.key]) : col.type === 'date' ? formatDate(subItem[col.key]) : subItem[col.key]}
                   </Text>
                 </View>
@@ -105,20 +100,25 @@ const DataGrid = ({
               {col.key === 'SerialNo' || col.key === columns[0].key ? (
                  <View style={{flexDirection:'row', alignItems:'center'}}>
                     {hasSubGrid && <Ionicons name={isExpanded ? "chevron-down" : "chevron-forward"} size={14} color="#666" style={{marginRight: 4}} />}
-                    <Text style={styles.cellText}>{col.key === 'SerialNo' ? index + 1 : item[col.key]}</Text>
+                    <Text style={styles.cellText} numberOfLines={2}>
+                      {col.key === 'SerialNo' ? index + 1 : item[col.key]}
+                    </Text>
                  </View>
               ) : col.type === 'action_group' || col.key === 'Print' ? (
-                // 🟡 ACTION BUTTONS - ONLY PRINT
                 <View style={styles.actionGroup}>
                   <TouchableOpacity 
                     style={[styles.iconBtn, { backgroundColor: '#FFC107' }]} 
-                    onPress={() => onPrintRow && onPrintRow(item)} // ✅ SAFE CALL
+                    onPress={() => onPrintRow && onPrintRow(item)} 
                   >
-                    <Ionicons name="print-outline" size={12} color="black" />
+                    <Ionicons name="print-outline" size={14} color="black" />
                   </TouchableOpacity>
                 </View>
               ) : (
-                <Text style={[styles.cellText, (col.type === 'money' || col.total) && { textAlign: 'right' }]} numberOfLines={1}>
+                <Text 
+                  style={[styles.cellText, (col.type === 'money' || col.total) && { textAlign: 'right' }]} 
+                  numberOfLines={2}
+                  ellipsizeMode="tail"
+                >
                   {col.type === 'money' ? formatCurrency(item[col.key]) : col.type === 'date' ? formatDate(item[col.key]) : item[col.key]}
                 </Text>
               )}
@@ -149,13 +149,28 @@ const DataGrid = ({
       <ScrollView horizontal showsHorizontalScrollIndicator={true} contentContainerStyle={{flexGrow: 1}}>
         <View>
           <View style={styles.headerRow}>
-            {effectiveColumns.map((col) => <View key={col.key} style={[styles.cell, { width: col.width }]}><Text style={[styles.headerText, (col.type === 'money' || col.total) && { textAlign: 'right' }]}>{col.title}</Text></View>)}
-          </View>
-          <FlatList data={processedData} keyExtractor={(item, index) => item.id || index.toString()} renderItem={renderRow} />
-          <View style={styles.footerRow}>
             {effectiveColumns.map((col) => (
               <View key={col.key} style={[styles.cell, { width: col.width }]}>
-                {col.key === 'SerialNo' || col.key === 'ID' ? <Text style={styles.footerLabel}>Total:</Text> : col.total ? <Text style={[styles.footerValue, { textAlign: 'right' }]}>{col.type === 'money' ? formatCurrency(totals[col.key]) : totals[col.key]}</Text> : null}
+                <Text style={[styles.headerText, (col.type === 'money' || col.total) && { textAlign: 'right' }]} numberOfLines={2}>
+                  {col.title}
+                </Text>
+              </View>
+            ))}
+          </View>
+          
+          <FlatList data={processedData} keyExtractor={(item, index) => item.id || index.toString()} renderItem={renderRow} />
+          
+          <View style={styles.footerRow}>
+            {effectiveColumns.map((col, index) => (
+              <View key={col.key} style={[styles.cell, { width: col.width }]}>
+                {/* index === 1 moves 'Total:' to the second column instead of SerialNo */}
+                {index === 1 ? (
+                  <Text style={styles.footerLabel}>Total:</Text>
+                ) : col.total ? (
+                  <Text style={[styles.footerValue, { textAlign: 'right' }]} numberOfLines={2}>
+                    {col.type === 'money' ? formatCurrency(totals[col.key]) : totals[col.key]}
+                  </Text>
+                ) : null}
               </View>
             ))}
           </View>
@@ -170,28 +185,28 @@ const formatDate = (val) => { if (!val) return '-'; if (typeof val === 'string' 
 
 const styles = StyleSheet.create({
   gridContainer: { flex: 1, backgroundColor: 'white', borderWidth: 1, borderColor: '#DDD' },
-  cell: { paddingHorizontal: 8, paddingVertical: 10, justifyContent: 'center' },
-  headerRow: { flexDirection: 'row', backgroundColor: COLORS.primary, height: 45, alignItems: 'center' },
-  headerText: { color: 'white', fontWeight: 'bold', fontSize: 13 },
-  row: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#F0F0F0', height: 45, alignItems: 'center' },
+  cell: { paddingHorizontal: 6, paddingVertical: 4, justifyContent: 'center' },
+  headerRow: { flexDirection: 'row', backgroundColor: COLORS.primary, minHeight: 50, alignItems: 'center' },
+  headerText: { color: 'white', fontWeight: 'bold', fontSize: 12, lineHeight: 15 },
+  row: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#F0F0F0', minHeight: 55, alignItems: 'center' },
   alternateRow: { backgroundColor: '#F8F9FA' },
   expandedRow: { backgroundColor: '#E3F2FD', borderLeftWidth: 4, borderLeftColor: COLORS.secondary },
-  cellText: { fontSize: 12, color: '#333' },
-  footerRow: { flexDirection: 'row', backgroundColor: '#EEE', borderTopWidth: 2, borderColor: '#999', height: 50, alignItems: 'center' },
+  cellText: { fontSize: 11, color: '#333', lineHeight: 14 },
+  footerRow: { flexDirection: 'row', backgroundColor: '#EEE', borderTopWidth: 2, borderColor: '#999', minHeight: 50, alignItems: 'center' },
   footerLabel: { fontWeight: 'bold', fontSize: 13, color: 'black' },
-  footerValue: { fontWeight: 'bold', fontSize: 13, color: COLORS.primary },
+  footerValue: { fontWeight: 'bold', fontSize: 12, color: COLORS.primary },
   groupHeaderRow: { flexDirection: 'row', backgroundColor: '#E0F7FA', padding: 8, borderBottomWidth: 1, borderColor: '#B2EBF2', alignItems: 'center' },
   groupHeaderText: { fontWeight: 'bold', color: '#006064', fontSize: 13 },
   subGridContainer: { backgroundColor: '#ECEFF1', padding: 10, borderBottomWidth: 1, borderColor: '#CFD8DC' },
   subGridWrapper: { backgroundColor: 'white', borderRadius: 6, overflow: 'hidden', elevation: 1 },
-  subHeaderRow: { flexDirection: 'row', backgroundColor: '#546E7A', paddingVertical: 8 },
-  subHeaderText: { fontWeight: 'bold', fontSize: 11, color: 'white', textAlign: 'center' }, 
-  subRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#EEEEEE', paddingVertical: 6 },
-  subCell: { paddingHorizontal: 6, borderRightWidth: 1, borderRightColor: '#F5F5F5', justifyContent: 'center' },
-  subCellText: { fontSize: 11, color: '#455A64' }, 
+  subHeaderRow: { flexDirection: 'row', backgroundColor: '#546E7A', minHeight: 40, alignItems: 'center' },
+  subHeaderText: { fontWeight: 'bold', fontSize: 10, color: 'white', textAlign: 'center', lineHeight: 12 }, 
+  subRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#EEEEEE', minHeight: 45, alignItems: 'center' },
+  subCell: { paddingHorizontal: 4, borderRightWidth: 1, borderRightColor: '#F5F5F5', justifyContent: 'center' },
+  subCellText: { fontSize: 10, color: '#455A64', lineHeight: 12 }, 
   noDataText: { fontSize: 12, color: '#999', fontStyle: 'italic', padding: 10, textAlign:'center' },
-  actionGroup: { flexDirection: 'row', gap: 5 },
-  iconBtn: { padding: 4, borderRadius: 4 }
+  actionGroup: { flexDirection: 'row', justifyContent: 'center', width: '100%' },
+  iconBtn: { padding: 6, borderRadius: 4 }
 });
 
 export default DataGrid;

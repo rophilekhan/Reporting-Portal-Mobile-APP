@@ -1,24 +1,21 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { 
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions, StatusBar, Modal, FlatList,
-  Platform
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, 
+  StatusBar, Modal, FlatList, Platform, useWindowDimensions 
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import LinearGradient from 'react-native-linear-gradient';
-import { useSafeAreaInsets } from 'react-native-safe-area-context'; // ✅ Safe Area
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { COLORS } from '../../config/theme';
 import { logoutUser } from '../../services/authService';
 import { BranchContext } from '../../context/BranchContext';
 
-const { width, height } = Dimensions.get('window');
-const scale = (size) => (width / 375) * size;
-
-const InfoRow = ({ icon, label, value }) => (
+const InfoRow = ({ icon, label, value, isSmallScreen }) => (
   <View style={styles.infoRow}>
     <View style={styles.iconBox}>
-      <Ionicons name={icon} size={scale(20)} color={COLORS.primary} />
+      <Ionicons name={icon} size={isSmallScreen ? 18 : 22} color={COLORS.primary} />
     </View>
     <View style={styles.infoTextContainer}>
       <Text style={styles.infoLabel}>{label}</Text>
@@ -28,30 +25,31 @@ const InfoRow = ({ icon, label, value }) => (
 );
 
 const UserProfileScreen = ({ navigation }) => {
-  const insets = useSafeAreaInsets(); // ✅ Safe Area Hook
+  const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
   const { companyBranchId, branchName, updateBranch, loadBranchFromStorage } = useContext(BranchContext);
   
+  const isLandscape = width > height;
+  const isTablet = width > 768;
+  const isSmallScreen = width < 360;
+
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [branches, setBranches] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [loadingBranches, setLoadingBranches] = useState(false);
-
+const currentYear = new Date().getFullYear();
   useEffect(() => {
-    // 1. Reload global context data to ensure we have latest login info
     loadBranchFromStorage();
-
     const loadUserAndBranches = async () => {
       try {
         const jsonValue = await AsyncStorage.getItem('userInfo');
         const user = jsonValue != null ? JSON.parse(jsonValue) : null;
         setUserData(user);
-
-        if (user?.UserID) {
-          fetchBranches(user.UserID, user.CompanyBranchID);
-        }
+        // Corrected property access to match typical API casing (UserID)
+        if (user?.UserID) fetchBranches(user.UserID, user.CompanyBranchID);
       } catch (e) {
-        console.error(e);
+        console.error("Storage Error:", e);
       } finally {
         setLoading(false);
       }
@@ -62,40 +60,24 @@ const UserProfileScreen = ({ navigation }) => {
   const fetchBranches = async (userId, userDefaultBranchId) => {
     setLoadingBranches(true);
     const url = `https://erp.hassoftsolutions.com/MobileReportsAPI/GetCompanyBranches?userID=${userId}`;
-    
     try {
       const response = await fetch(url);
-      const text = await response.text(); 
-      try {
-        const data = JSON.parse(text);
-        if (Array.isArray(data)) {
-          setBranches(data);
-          
-          // ✅ AUTO-SELECT NAME LOGIC:
-          // If we have an ID (either global or user default) but no friendly Name in context, find it now.
-          const targetId = companyBranchId || userDefaultBranchId;
-          
-          if (targetId) {
-               const current = data.find(b => b.ID === targetId);
-               // Only update if the name is generic "Select Branch" or null
-               if(current && (branchName === 'Select Branch' || !branchName)) {
-                   updateBranch(current.ID, current.Name);
-               }
+      const data = await response.json(); // Cleaned up JSON parsing
+      if (Array.isArray(data)) {
+        setBranches(data);
+        const targetId = companyBranchId || userDefaultBranchId;
+        if (targetId) {
+          const current = data.find(b => b.ID === targetId);
+          if (current && (branchName === 'Select Branch' || !branchName)) {
+            updateBranch(current.ID, current.Name);
           }
         }
-      } catch (jsonError) {
-        console.error("API Error: Invalid JSON", text);
       }
     } catch (error) {
-      console.error("Network Error:", error);
+      console.error("Fetch Error:", error);
     } finally {
       setLoadingBranches(false);
     }
-  };
-
-  const handleBranchSelect = (item) => {
-    updateBranch(item.ID, item.Name);
-    setModalVisible(false);
   };
 
   const handleLogout = async () => {
@@ -111,147 +93,135 @@ const UserProfileScreen = ({ navigation }) => {
     );
   }
 
+  const cardWidth = isTablet ? 550 : isLandscape ? '80%' : '92%';
+
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} translucent={true} />
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       
       <ScrollView 
-        contentContainerStyle={{ paddingBottom: Math.max(insets.bottom + 20, scale(40)) }} 
+        contentContainerStyle={{ paddingBottom: insets.bottom + 40 }} 
         showsVerticalScrollIndicator={false}
         bounces={false}
       >
-        {/* Header - Safe Area Applied via Padding */}
         <LinearGradient
           colors={['#003892', '#0055c8', '#e98a57']}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={[styles.header, { paddingTop: insets.top + scale(20) }]} 
+          style={[styles.header, { paddingTop: insets.top + 20, height: isLandscape ? 130 : 180 }]} 
         >
           <Text style={styles.headerTitle}>My Profile</Text>
         </LinearGradient>
 
-        {/* Profile Card */}
-        <View style={styles.profileCard}>
+        {/* Fixed property: user?.UserName instead of userName */}
+        <View style={[styles.profileCard, { width: cardWidth, marginTop: isLandscape ? -30 : -50 }]}>
           <View style={styles.avatarContainer}>
             <Text style={styles.avatarText}>
               {userData?.UserName ? userData.UserName.charAt(0).toUpperCase() : 'U'}
             </Text>
           </View>
           <Text style={styles.userName}>{userData?.UserName || 'Guest User'}</Text>
-          <Text style={styles.userRole}>{userData?.userRole || 'User'}</Text>
+          <Text style={styles.userRole}>{userData?.userRole || 'Administrator'}</Text>
           <View style={styles.statusBadge}>
             <View style={styles.statusDot} />
             <Text style={styles.statusText}>Active</Text>
           </View>
         </View>
 
-        <View style={styles.scrollContent}>
+        <View style={[styles.scrollContent, { width: cardWidth, alignSelf: 'center' }]}>
           
-          {/* Branch Selection */}
           <View style={styles.sectionCard}>
             <Text style={styles.sectionTitle}>Company Branch</Text>
-            
             <TouchableOpacity 
-                style={styles.dropdownButton} 
-                onPress={() => setModalVisible(true)}
+              style={styles.dropdownButton} 
+              onPress={() => setModalVisible(true)}
             >
-                <View style={{flexDirection:'row', alignItems:'center'}}>
-                    <View style={[styles.iconBox, { backgroundColor: '#E3F2FD' }]}>
-                        <Ionicons name="business" size={scale(20)} color="#1565C0" />
-                    </View>
-                    <View>
-                        <Text style={styles.dropdownLabel}>Selected Branch</Text>
-                        <Text style={styles.dropdownValue}>
-                             {branches.find(b => b.ID === companyBranchId)?.Name || branchName || companyBranchId || "Select Branch"}
-                        </Text>
-                    </View>
+              <View style={styles.dropdownInner}>
+                <View style={[styles.iconBox, { backgroundColor: '#E3F2FD' }]}>
+                  <Ionicons name="business" size={20} color="#1565C0" />
                 </View>
-                <Ionicons name="chevron-down" size={scale(20)} color="#666" />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.dropdownLabel}>Selected Branch</Text>
+                  <Text style={styles.dropdownValue} numberOfLines={1}>
+                    {branches.find(b => b.ID === companyBranchId)?.Name || branchName || "Select Branch"}
+                  </Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-down" size={20} color="#666" />
             </TouchableOpacity>
-
-            <Text style={styles.helperText}>
-                * Changing this updates data across the entire app.
-            </Text>
+            <Text style={styles.helperText}>* Updating branch syncs data app-wide.</Text>
           </View>
 
-          {/* Account Details */}
           <View style={styles.sectionCard}>
             <Text style={styles.sectionTitle}>Account Details</Text>
-            <InfoRow icon="id-card-outline" label="User ID" value={userData?.UserID?.toString()} />
+            {/* Fixed property: userData?.UserName */}
+            {/* <InfoRow icon="person-outline" label="Full Name" value={userData?.UserName} isSmallScreen={isSmallScreen} /> */}
             <View style={styles.divider} />
-            <InfoRow icon="key-outline" label="Current Branch ID" value={companyBranchId?.toString()} />
+            <InfoRow icon="key-outline" label="Current Company Branch ID" value={companyBranchId?.toString()} isSmallScreen={isSmallScreen} />
             <View style={styles.divider} />
-            <InfoRow icon="shield-checkmark-outline" label="Access Level" value={userData?.userRole} />
+            <InfoRow icon="shield-checkmark-outline" label="Access Level" value={userData?.userRole} isSmallScreen={isSmallScreen} />
           </View>
 
-          {/* App Info */}
-          <View style={styles.sectionCard}>
+          {/* <View style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>Application Info</Text>
+            <InfoRow icon="layers-outline" label="Version" value="1.0.0 (Beta)" isSmallScreen={isSmallScreen} />
+            <View style={styles.divider} />
+            <InfoRow icon="server-outline" label="Environment" value="Production" isSmallScreen={isSmallScreen} />
+          </View> */}
+ <View style={styles.sectionCard}>
             <Text style={styles.sectionTitle}>Application Info</Text>
             <InfoRow icon="layers-outline" label="Version" value="1.0.0 (Beta)" />
             <View style={styles.divider} />
             <InfoRow icon="server-outline" label="Server Environment" value="Production" />
             <View style={styles.divider} />
-            <InfoRow icon="calendar-outline" label="Last Updated" value="Dec 2025" />
+            <InfoRow icon="calendar-outline" label="Last Updated" value="Jan 2026" />
           </View>
 
-          {/* Logout */}
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Ionicons name="log-out-outline" size={scale(20)} color="#D32F2F" style={{ marginRight: 10 }} />
+            <Ionicons name="log-out-outline" size={20} color="#D32F2F" style={{ marginRight: 10 }} />
             <Text style={styles.logoutText}>Sign Out</Text>
           </TouchableOpacity>
 
-          <Text style={styles.footerText}>Xinacle ERP © 2026</Text>
+          <Text style={styles.footerText}>Xinacle ERP © {currentYear}</Text>
         </View>
       </ScrollView>
 
-      {/* Modal - Same as before */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
+      <Modal animationType="slide" transparent visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
         <View style={styles.modalOverlay}>
-            <View style={styles.modalContainer}>
-                <View style={styles.modalHeader}>
-                    <Text style={styles.modalTitle}>Select Branch</Text>
-                    <TouchableOpacity onPress={() => setModalVisible(false)}>
-                        <Ionicons name="close" size={24} color="#333" />
-                    </TouchableOpacity>
-                </View>
-
-                {loadingBranches ? (
-                    <ActivityIndicator size="large" color={COLORS.primary} style={{margin: 20}} />
-                ) : (
-                    <FlatList
-                        data={branches}
-                        keyExtractor={(item) => item.ID.toString()}
-                        renderItem={({ item }) => (
-                            <TouchableOpacity 
-                                style={[
-                                    styles.branchItem, 
-                                    item.ID === companyBranchId && styles.selectedBranchItem
-                                ]}
-                                onPress={() => handleBranchSelect(item)}
-                            >
-                                <Text style={[
-                                    styles.branchText,
-                                    item.ID === companyBranchId && styles.selectedBranchText
-                                ]}>
-                                    {item.Name}
-                                </Text>
-                                {item.ID === companyBranchId && (
-                                    <Ionicons name="checkmark-circle" size={22} color={COLORS.secondary} />
-                                )}
-                            </TouchableOpacity>
-                        )}
-                        style={{ maxHeight: height * 0.5 }}
-                        ListEmptyComponent={<Text style={{textAlign:'center', padding:20, color:'#999'}}>No branches found.</Text>}
-                    />
-                )}
+          <View style={[styles.modalContainer, { width: isTablet ? 500 : '100%', paddingBottom: insets.bottom + 20 }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Branch</Text>
+              <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.closeBtn}>
+                <Ionicons name="close" size={26} color="#333" />
+              </TouchableOpacity>
             </View>
+
+            {loadingBranches ? (
+              <ActivityIndicator size="large" color={COLORS.primary} style={{ margin: 30 }} />
+            ) : (
+              <FlatList
+                data={branches}
+                keyExtractor={(item) => item.ID.toString()}
+                renderItem={({ item }) => (
+                  <TouchableOpacity 
+                    style={[styles.branchItem, item.ID === companyBranchId && styles.selectedBranchItem]}
+                    onPress={() => {
+                      updateBranch(item.ID, item.Name);
+                      setModalVisible(false);
+                    }}
+                  >
+                    <Text style={[styles.branchText, item.ID === companyBranchId && styles.selectedBranchText]}>
+                      {item.Name}
+                    </Text>
+                    {item.ID === companyBranchId && <Ionicons name="checkmark-circle" size={22} color={COLORS.secondary} />}
+                  </TouchableOpacity>
+                )}
+                style={{ maxHeight: height * 0.6 }}
+                ListEmptyComponent={<Text style={styles.emptyListText}>No branches available.</Text>}
+              />
+            )}
+          </View>
         </View>
       </Modal>
-
     </View>
   );
 };
@@ -259,90 +229,82 @@ const UserProfileScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5F7FA' },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  
-  // Header with fixed height logic adjusted for safe area in the component
   header: {
-    // Height is dynamic based on content + padding
-    paddingBottom: scale(40), 
-    paddingHorizontal: scale(20),
-    borderBottomLeftRadius: scale(30),
-    borderBottomRightRadius: scale(30),
+    paddingHorizontal: 25,
+    borderBottomLeftRadius: 35,
+    borderBottomRightRadius: 35,
     alignItems: 'center',
+    width: '100%',
   },
-  headerTitle: { color: 'white', fontSize: scale(22), fontWeight: 'bold' },
-
+  headerTitle: { color: 'white', fontSize: 24, fontWeight: 'bold' },
   profileCard: {
     alignItems: 'center',
     alignSelf: 'center',
-    marginTop: -scale(30), // Pulled up over header
-    width: '90%',
     backgroundColor: 'white',
-    borderRadius: scale(20),
-    paddingVertical: scale(25),
-    paddingHorizontal: scale(20),
-    elevation: 5,
+    borderRadius: 20,
+    paddingVertical: 25,
+    paddingHorizontal: 20,
+    elevation: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    marginBottom: scale(20),
+    shadowRadius: 10,
   },
   avatarContainer: {
-    width: scale(80), height: scale(80), borderRadius: scale(40),
+    width: 90, height: 90, borderRadius: 45,
     backgroundColor: '#F0F4FF', justifyContent: 'center', alignItems: 'center',
-    marginBottom: scale(15), borderWidth: 3, borderColor: '#e98a57',
+    marginBottom: 15, borderWidth: 3, borderColor: '#e98a57',
   },
-  avatarText: { fontSize: scale(36), fontWeight: 'bold', color: COLORS.primary },
-  userName: { fontSize: scale(22), fontWeight: 'bold', color: '#333', marginBottom: scale(5) },
-  userRole: { fontSize: scale(14), color: '#666', marginBottom: scale(15), textTransform: 'uppercase' },
-  statusBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#E8F5E9', padding: scale(6), borderRadius: scale(20) },
-  statusDot: { width: scale(8), height: scale(8), borderRadius: scale(4), backgroundColor: '#4CAF50', marginRight: scale(6) },
-  statusText: { color: '#4CAF50', fontSize: scale(12), fontWeight: '600' },
-
-  scrollContent: { paddingHorizontal: scale(20) },
-  
+  avatarText: { fontSize: 38, fontWeight: 'bold', color: COLORS.primary },
+  userName: { fontSize: 20, fontWeight: 'bold', color: '#333', marginBottom: 5 },
+  userRole: { fontSize: 13, color: '#666', marginBottom: 15, textTransform: 'uppercase', letterSpacing: 1 },
+  statusBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#E8F5E9', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20 },
+  statusDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#4CAF50', marginRight: 8 },
+  statusText: { color: '#4CAF50', fontSize: 12, fontWeight: 'bold' },
+  scrollContent: { marginTop: 20, paddingHorizontal: 15 },
   sectionCard: {
-    backgroundColor: 'white', borderRadius: scale(15), padding: scale(20), marginBottom: scale(20),
-    elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05,
+    backgroundColor: 'white', borderRadius: 18, padding: 18, marginBottom: 15,
+    elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5,
   },
-  sectionTitle: { fontSize: scale(16), fontWeight: 'bold', color: '#333', marginBottom: scale(15) },
-
-  infoRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: scale(8) },
+  sectionTitle: { fontSize: 15, fontWeight: 'bold', color: '#1A1A1A', marginBottom: 15 },
+  infoRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
   iconBox: {
-    width: scale(40), height: scale(40), borderRadius: scale(10),
-    backgroundColor: '#F5F7FA', justifyContent: 'center', alignItems: 'center', marginRight: scale(15),
+    width: 44, height: 44, borderRadius: 12,
+    backgroundColor: '#F5F7FA', justifyContent: 'center', alignItems: 'center', marginRight: 15,
   },
   infoTextContainer: { flex: 1 },
-  infoLabel: { fontSize: scale(12), color: '#999', marginBottom: scale(2) },
-  infoValue: { fontSize: scale(15), color: '#333', fontWeight: '500' },
-  divider: { height: 1, backgroundColor: '#F0F0F0', marginVertical: scale(5), marginLeft: scale(55) },
-
+  infoLabel: { fontSize: 11, color: '#999', marginBottom: 2, textTransform: 'uppercase' },
+  infoValue: { fontSize: 15, color: '#333', fontWeight: '600' },
+  divider: { height: 1, backgroundColor: '#F0F0F0', marginVertical: 5, marginLeft: 55 },
   dropdownButton: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    backgroundColor: '#F8F9FA', padding: scale(10), borderRadius: scale(12),
-    borderWidth: 1, borderColor: '#E0E0E0'
+    backgroundColor: '#F8F9FA', padding: 12, borderRadius: 14,
+    borderWidth: 1, borderColor: '#EEE'
   },
-  dropdownLabel: { fontSize: scale(11), color: '#888' },
-  dropdownValue: { fontSize: scale(14), color: '#333', fontWeight: 'bold' },
-  helperText: { fontSize: scale(11), color: '#999', marginTop: scale(8), fontStyle: 'italic' },
-
+  dropdownInner: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  dropdownLabel: { fontSize: 11, color: '#888' },
+  dropdownValue: { fontSize: 14, color: '#333', fontWeight: 'bold' },
+  helperText: { fontSize: 11, color: '#999', marginTop: 10, fontStyle: 'italic' },
   logoutButton: {
-    flexDirection: 'row', backgroundColor: '#FFEBEE', paddingVertical: scale(15),
-    borderRadius: scale(15), justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#FFCDD2',
+    flexDirection: 'row', backgroundColor: '#FFF0F0', paddingVertical: 16,
+    borderRadius: 18, justifyContent: 'center', alignItems: 'center', 
+    borderWidth: 1, borderColor: '#FFE0E0', marginTop: 10
   },
-  logoutText: { color: '#D32F2F', fontSize: scale(16), fontWeight: 'bold' },
-  footerText: { textAlign: 'center', marginTop: scale(20), color: '#BBB', fontSize: scale(12) },
-
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContainer: { backgroundColor: 'white', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: height * 0.7 },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
+  logoutText: { color: '#D32F2F', fontSize: 16, fontWeight: 'bold' },
+  footerText: { textAlign: 'center', marginTop: 25, color: '#BBB', fontSize: 12, letterSpacing: 0.5 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end', alignItems: 'center' },
+  modalContainer: { backgroundColor: 'white', borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 25, maxHeight: '90%' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#333' },
+  closeBtn: { padding: 5 },
   branchItem: { 
-      paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#F0F0F0', 
-      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' 
+    paddingVertical: 18, borderBottomWidth: 1, borderBottomColor: '#F5F5F5', 
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' 
   },
-  selectedBranchItem: { backgroundColor: '#FFF3E0', paddingHorizontal: 10, borderRadius: 8, borderBottomWidth: 0 },
-  branchText: { fontSize: 16, color: '#333' },
-  selectedBranchText: { color: COLORS.secondary, fontWeight: 'bold' },
+  selectedBranchItem: { backgroundColor: '#F0F7FF', paddingHorizontal: 15, borderRadius: 12, borderBottomWidth: 0 },
+  branchText: { fontSize: 16, color: '#444', flex: 1 },
+  selectedBranchText: { color: '#0055c8', fontWeight: 'bold' },
+  emptyListText: { textAlign: 'center', padding: 30, color: '#999' }
 });
 
 export default UserProfileScreen;

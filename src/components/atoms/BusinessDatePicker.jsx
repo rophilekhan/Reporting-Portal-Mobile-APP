@@ -14,6 +14,7 @@ const BusinessDatePicker = ({ label, date, onDateChange }) => {
         <Text style={styles.dateText}>
           {date ? date.toDateString() : 'Select Date'}
         </Text>
+        {/* Using Primary color for the icon to match your theme */}
         <Ionicons name="calendar-outline" size={20} color={COLORS.secondary} />
       </TouchableOpacity>
       
@@ -22,6 +23,12 @@ const BusinessDatePicker = ({ label, date, onDateChange }) => {
         open={open}
         date={date || new Date()}
         mode="date"
+        // --- Theme based selection design ---
+        title={`Select ${label}`}
+        confirmText="Confirm"
+        cancelText="Cancel"
+        buttonColor={COLORS.secondary} // Matches the Confirm button to your primary theme color
+        theme="light" // Ensures the picker background is white for better readability
         onConfirm={(selectedDate) => {
           setOpen(false);
           onDateChange(selectedDate);

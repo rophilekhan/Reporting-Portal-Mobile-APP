@@ -1,5 +1,5 @@
 export const getReportColumns = (reportName, subType = null) => {
-  const serialCol = { key: 'SerialNo', title: 'S.No', width: 50 };
+  const serialCol = { key: 'SerialNo', title: 'S.No', width: 30 };
   const MONEY_WIDTH = 120;
 
   const definitions = {

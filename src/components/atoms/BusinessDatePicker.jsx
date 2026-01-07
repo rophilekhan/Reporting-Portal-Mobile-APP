@@ -12,7 +12,14 @@ const BusinessDatePicker = ({ label, date, onDateChange }) => {
       <Text style={styles.label}>{label}</Text>
       <TouchableOpacity style={styles.input} onPress={() => setOpen(true)}>
         <Text style={styles.dateText}>
-          {date ? date.toDateString() : 'Select Date'}
+          {date
+  ? date.toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    })
+  : 'Select Date'}
+
         </Text>
         {/* Using Primary color for the icon to match your theme */}
         <Ionicons name="calendar-outline" size={20} color={COLORS.secondary} />

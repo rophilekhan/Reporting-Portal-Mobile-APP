@@ -24,7 +24,6 @@ import { BranchContext } from '../../context/BranchContext';
 
 const API_URL = "https://erp.hassoftsolutions.com"; 
 
-// --- MISSING COLORS ---
 const MONTH_COLORS = ["#00C853", "#F44336", "#FF9800", "#2962FF", "#9C27B0", "#00BCD4"];
 const STOCK_COLORS = ["#5C6BC0", "#5E72E4", "#F06292", "#EF5350", "#42A5F5"];
 const BAR_COLORS = ["#00C853", "#F44336", "#FF9800", "#2962FF", "#9C27B0", "#00BCD4"];
@@ -32,31 +31,15 @@ const BAR_COLORS = ["#00C853", "#F44336", "#FF9800", "#2962FF", "#9C27B0", "#00B
 // --- SHIMMER COMPONENT ---
 const ShimmerPlaceholder = ({ style }) => {
   const shimmerAnimatedValue = useRef(new Animated.Value(0)).current;
-
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(shimmerAnimatedValue, {
-          toValue: 1,
-          duration: 1000,
-          easing: Easing.linear,
-          useNativeDriver: true,
-        }),
-        Animated.timing(shimmerAnimatedValue, {
-          toValue: 0,
-          duration: 1000,
-          easing: Easing.linear,
-          useNativeDriver: true,
-        }),
+        Animated.timing(shimmerAnimatedValue, { toValue: 1, duration: 1000, easing: Easing.linear, useNativeDriver: true }),
+        Animated.timing(shimmerAnimatedValue, { toValue: 0, duration: 1000, easing: Easing.linear, useNativeDriver: true }),
       ])
     ).start();
   }, []);
-
-  const opacity = shimmerAnimatedValue.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.3, 0.7],
-  });
-
+  const opacity = shimmerAnimatedValue.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.7] });
   return <Animated.View style={[style, { backgroundColor: '#E1E9EE', opacity }]} />;
 };
 
@@ -73,12 +56,12 @@ const SkeletonLoader = ({ cardWidth, padding }) => (
       ))}
     </View>
     <View style={{ paddingHorizontal: padding, marginBottom: 16 }}>
-       <View style={[styles.chartCard, { height: 240, justifyContent: 'center' }]}>
-          <ShimmerPlaceholder style={{ width: '40%', height: 15, borderRadius: 5, marginBottom: 20 }} />
-          <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-around', height: 150 }}>
-            {[1, 2, 3, 4, 5, 6].map(b => <ShimmerPlaceholder key={b} style={{ width: 30, height: 20 * b + 20, borderRadius: 4 }} />)}
-          </View>
-       </View>
+        <View style={[styles.chartCard, { height: 240, justifyContent: 'center' }]}>
+           <ShimmerPlaceholder style={{ width: '40%', height: 15, borderRadius: 5, marginBottom: 20 }} />
+           <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-around', height: 150 }}>
+             {[1, 2, 3, 4, 5, 6].map(b => <ShimmerPlaceholder key={b} style={{ width: 30, height: 20 * b + 20, borderRadius: 4 }} />)}
+           </View>
+        </View>
     </View>
   </ScrollView>
 );
@@ -215,7 +198,6 @@ const DashboardScreen = ({ navigation }) => {
   const isTablet = screenWidth >= 768;
   const isSmallScreen = screenWidth < 360;
   
-  // NEW LOGIC: If landscape, show 3 cards per row. If portrait, show 2.
   const isLandscape = screenWidth > screenHeight;
   const PADDING = 16;
   const GAP = 12;
@@ -228,6 +210,9 @@ const DashboardScreen = ({ navigation }) => {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [fromDate, setFromDate] = useState(new Date());
   const [toDate, setToDate] = useState(new Date());
+  
+  // Naya state manual trigger ke liye
+  const [triggerFetch, setTriggerFetch] = useState(0);
 
   const [dashboardStats, setDashboardStats] = useState(null);
   const [salesChartData, setSalesChartData] = useState(null);
@@ -236,7 +221,11 @@ const DashboardScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => { loadBranchFromStorage(); }, []);
-  useEffect(() => { if (companyBranchId) fetchDashboardData(); }, [companyBranchId, selectedFilter, fromDate, toDate]);
+
+  // Filter logic logic update: Custom hone par sirf triggerFetch par chalega
+  useEffect(() => { 
+    if (companyBranchId) fetchDashboardData(); 
+  }, [companyBranchId, selectedFilter === 'Custom' ? triggerFetch : selectedFilter]);
 
   const fetchDashboardData = async () => {
     if(!companyBranchId) return; 
@@ -286,13 +275,17 @@ const DashboardScreen = ({ navigation }) => {
     } catch (error) { console.error(error); } finally { setLoading(false); }
   };
 
+  const handleApplyFilter = () => {
+    setTriggerFetch(prev => prev + 1);
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
       {isFocused && (
         <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} translucent={false} />
       )}
       
-      <View style={[styles.header, { paddingTop: Platform.OS === 'ios' ? insets.top : 20 }]}>
+      <View style={[styles.header, { paddingTop: Platform.OS === 'ios' ? insets.top : 22 }]}>
         <View style={styles.headerLeft}>
           <TouchableOpacity onPress={() => navigation.dispatch(DrawerActions.openDrawer())} style={styles.menuButton}>
             <Ionicons name="menu" size={28} color="white" />
@@ -312,9 +305,22 @@ const DashboardScreen = ({ navigation }) => {
           
           {selectedFilter === 'Custom' && (
             <View style={styles.customDateSection}>
-              <BusinessDatePicker label="From" date={fromDate} onDateChange={(d) => setFromDate(d)} />
-              <View style={{ width: 10 }} />
-              <BusinessDatePicker label="To" date={toDate} onDateChange={(d) => setToDate(d)} />
+              <View style={{ flex: 1, flexDirection: 'row', alignItems: 'flex-end' }}>
+                <View style={{ flex: 1 }}>
+                   <BusinessDatePicker label="From Date" date={fromDate} onDateChange={(d) => setFromDate(d)} />
+                </View>
+                <View style={{ width: 10 }} />
+                <View style={{ flex: 1 }}>
+                   <BusinessDatePicker label="To Date" date={toDate} onDateChange={(d) => setToDate(d)} />
+                </View>
+              </View>
+              {/* Naya Filter Button Icon */}
+              <TouchableOpacity 
+                style={styles.applyFilterBtn} 
+                onPress={handleApplyFilter}
+              >
+                <Ionicons name="funnel-outline" size={22} color="white" />
+              </TouchableOpacity>
             </View>
           )}
 
@@ -327,7 +333,6 @@ const DashboardScreen = ({ navigation }) => {
             <StatCard title="TOTAL EXPENSES" value={formatCardValue(dashboardStats?.TotalExpenseAmount)} icon="wallet-outline" color="#E65100" accentColor="#FFF3E0" cardWidth={CARD_WIDTH} isSmallScreen={isSmallScreen} />
           </View>
 
-          {/* Rest of the UI remains exactly the same */}
           <View style={{ paddingHorizontal: PADDING, marginBottom: 16 }}>
             <ChartContainer title="Sales Performance" isTablet={isTablet}>
               {salesChartData ? (
@@ -397,13 +402,14 @@ const DashboardScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F4F7FE' },
-  header: { backgroundColor: COLORS.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 15, borderBottomLeftRadius: 20, borderBottomRightRadius: 20 },
+  header: { backgroundColor: COLORS.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 8, borderBottomLeftRadius: 20, borderBottomRightRadius: 20 },
   headerLeft: { flexDirection: 'row', alignItems: 'center' },
-  menuButton: { padding: 8 },
-  headerTitle: { color: 'white', fontSize: 20, fontWeight: 'bold', marginLeft: 8 },
-  filterButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20 },
+  menuButton: { padding: 8 , marginTop:10},
+  headerTitle: { color: 'white', fontSize: 20, fontWeight: 'bold', marginLeft: 8 , marginTop:10 },
+  filterButton: { flexDirection: 'row', alignItems: 'baseline', backgroundColor: 'rgba(255,255,255,0.2)', marginTop:10, paddingVertical: 6, paddingHorizontal: 16, borderRadius: 20 },
   filterText: { color: 'white', marginRight: 4, fontWeight: '600' },
-  customDateSection: { flexDirection: 'row', paddingHorizontal: 16, paddingTop: 16, justifyContent: 'space-between' },
+  customDateSection: { flexDirection: 'row', paddingHorizontal: 16, paddingTop: 16, alignItems: 'center' },
+  applyFilterBtn: { backgroundColor: COLORS.primary, padding: 8, borderRadius: 12, marginLeft: 10, elevation: 4, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 3, shadowOffset: { width: 0, height: 2 } },
   gridContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   card: { backgroundColor: 'white', borderRadius: 16, marginBottom: 12, flexDirection: 'row', overflow: 'hidden', elevation: 3, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 5 },
   cardLeftStrip: { width: 5, height: '100%' },

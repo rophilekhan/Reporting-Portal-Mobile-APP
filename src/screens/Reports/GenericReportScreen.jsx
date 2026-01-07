@@ -26,7 +26,6 @@ const GenericReportScreen = ({ route, navigation }) => {
   const isTablet = screenWidth >= 768;
   const isSmallScreen = screenWidth < 360;
   
-  // COMPACT SIDEBAR LOGIC (Fixed at 50% for Portrait)
   const SIDEBAR_MAX_WIDTH = isTablet 
     ? (isLandscape ? 280 : 320) 
     : (isLandscape ? 240 : screenWidth * 0.50);
@@ -36,11 +35,19 @@ const GenericReportScreen = ({ route, navigation }) => {
     updateFilter, loadReportData, activeType, setActiveType 
   } = useReportLogic(name);
 
-  // FIX: Always initialize to true so it opens by default in both modes
   const [isSidebarOpen, setSidebarOpen] = useState(true);
-  const slideAnim = useRef(new Animated.Value(1)).current; // Initialized to 1 (fully open)
+  const slideAnim = useRef(new Animated.Value(1)).current;
 
-  // REMOVED the useEffect that was checking for isLandscape to close the sidebar
+  // --- ICONS MAPPING ---
+  // Agar aapko icon change karna hai to yahan se naam badlein
+  const ICONS = {
+    date: "calendar-outline",
+    dropdown: "list-outline",
+    filter: "filter-outline",
+    options: "options-outline",
+    menu: "menu-outline",
+    arrow: "chevron-back-outline"
+  };
 
   useEffect(() => {
     Animated.timing(slideAnim, {
@@ -65,13 +72,14 @@ const GenericReportScreen = ({ route, navigation }) => {
 
   const openMenu = () => navigation.dispatch(DrawerActions.openDrawer());
 
- const handleButtonClick = async (action) => {
+  const handleButtonClick = async (action) => {
     if (action === 'show') {
+      // Ab 'Show' button dabane par hi data load hoga
       if (isSidebarOpen) {
         setSidebarOpen(false);
         await new Promise(resolve => setTimeout(resolve, 200));
       }
-      loadReportData();
+      loadReportData(); // Manual Trigger
     } 
     else if (action === 'print') {
       if (!config.sidebarPrintConfig) {
@@ -80,7 +88,6 @@ const GenericReportScreen = ({ route, navigation }) => {
       }
       const { reportName } = config.sidebarPrintConfig;
 
-      // 1. Get IDs from Storage
       const userJson = await AsyncStorage.getItem('userInfo');
       const user = userJson ? JSON.parse(userJson) : null;
       const userID = user?.UserID || '0';
@@ -90,7 +97,6 @@ const GenericReportScreen = ({ route, navigation }) => {
 
       let url = `${BASE_URL}ReportViewer.aspx?Report='${reportName}'`;
 
-      // 2. Logic for Purchase Summary (Strict Parameters)
       if (name === 'Purchase Summary') {
         const fromD = filters.fromDate instanceof Date 
           ? `${filters.fromDate.getFullYear()}-${(filters.fromDate.getMonth() + 1).toString().padStart(2, '0')}-${filters.fromDate.getDate().toString().padStart(2, '0')}` 
@@ -99,12 +105,9 @@ const GenericReportScreen = ({ route, navigation }) => {
           ? `${filters.toDate.getFullYear()}-${(filters.toDate.getMonth() + 1).toString().padStart(2, '0')}-${filters.toDate.getDate().toString().padStart(2, '0')}` 
           : '';
         const supplierID = filters.SupplierID || '';
-
-        // Added exactly what you asked: Status S and UserID
         url += `&FromDate=${fromD}&ToDate=${toD}&SupplierID=${supplierID}&Status=S&UserID=${userID}&CompanyBranchID=${branchID}`;
       } 
       else {
-        // 3. Default logic for all other reports (using your original date format)
         Object.keys(filters).forEach(key => {
           let val = filters[key];
           if (key === 'dateRange' || key === 'toDateOnly') return;
@@ -118,43 +121,25 @@ const GenericReportScreen = ({ route, navigation }) => {
         });
         url += `&UserID=${userID}&companyBranchID=${branchID}`;
       }
-
-      console.log("Final URL:", url);
       Linking.openURL(url).catch(err => console.error(err));
     }
   };
 
-const handleRowPrint = async (item) => {
+  const handleRowPrint = async (item) => {
     if (!config.rowPrintConfig) return;
-
     try {
       const { reportName, idParam, pk } = config.rowPrintConfig;
-      
-      // 1. Get values from the row item
       const idValue = item[pk]; 
-      
-      // 2. Get User Info from AsyncStorage for UserID
       const userJson = await AsyncStorage.getItem('userInfo');
       const user = userJson ? JSON.parse(userJson) : null;
       const userID = user?.UserID || '0';
-
-      // 3. Get Branch ID
       const branchID = await AsyncStorage.getItem('companyBranchId') || '1';
-
-      // 4. Construct URL with required parameters: ID, UserID, and CompanyBranchID
-      // Note: We use &IDParam=Value&UserID=Value&CompanyBranchID=Value
       let url = `${BASE_URL}ReportViewer.aspx?Report='${reportName}'` +
                 `&${idParam}=${idValue}` +
                 `&UserID=${userID}` +
                 `&CompanyBranchID=${branchID}`;
-
-      console.log("Printing Row URL:", url);
-      Linking.openURL(url).catch(err => {
-        Alert.alert("Error", "Could not open the print page.");
-        console.error(err);
-      });
+      Linking.openURL(url).catch(err => Alert.alert("Error", "Could not open the print page."));
     } catch (error) {
-      console.error("Print Row Error:", error);
       Alert.alert("Error", "An error occurred while preparing the print document.");
     }
   };
@@ -166,22 +151,19 @@ const handleRowPrint = async (item) => {
       <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
       
       {/* HEADER */}
-       <View style={[styles.header, { paddingTop: Platform.OS === 'ios' ? insets.top : 20 }]}>
+      <View style={[styles.header, { paddingTop: Platform.OS === 'ios' ? insets.top : 22 }]}>
         <View style={styles.headerLeft}>
           <TouchableOpacity onPress={openMenu} style={styles.menuButton}>
-            <Ionicons name="menu-outline" size={iconSize} color="white" />
+            <Ionicons name={ICONS.menu} size={iconSize} color="white" />
           </TouchableOpacity>
-          <Text 
-            style={[styles.headerTitle, { fontSize: isTablet ? 19 : 16 }]} 
-            numberOfLines={2}
-          >
+          <Text style={[styles.headerTitle, { fontSize: isTablet ? 19 : 16 }]} numberOfLines={2}>
             {name}
           </Text>
         </View>
 
         <TouchableOpacity onPress={toggleSidebar} style={styles.optionButton}>
           <Ionicons 
-            name={isSidebarOpen ? "chevron-back-outline" : "options-outline"} 
+            name={isSidebarOpen ? ICONS.arrow : ICONS.options} 
             size={iconSize - 2} 
             color="white" 
           />
@@ -192,28 +174,17 @@ const handleRowPrint = async (item) => {
         {/* ANIMATED COMPACT SIDEBAR */}
         <Animated.View style={[styles.sidebar, { width: animatedWidth }]}>
           <View style={{ width: SIDEBAR_MAX_WIDTH }}>
-            <ScrollView 
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.sidebarContent}
-            >
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.sidebarContent}>
+              
               {config?.isSpecial && config?.specialTypes && (
                 <View style={styles.tabContainer}>
                   {config.specialTypes.map((type) => (
                     <TouchableOpacity 
                       key={type.label}
-                      style={[
-                        styles.tabButton, 
-                        activeType?.label === type.label && styles.tabButtonActive
-                      ]}
+                      style={[styles.tabButton, activeType?.label === type.label && styles.tabButtonActive]}
                       onPress={() => setActiveType(type)}
                     >
-                      <Text 
-                        style={[
-                          styles.tabText, 
-                          activeType?.label === type.label && styles.tabTextActive
-                        ]}
-                        numberOfLines={1}
-                      >
+                      <Text style={[styles.tabText, activeType?.label === type.label && styles.tabTextActive]} numberOfLines={1}>
                         {type.label}
                       </Text>
                     </TouchableOpacity>
@@ -227,26 +198,41 @@ const handleRowPrint = async (item) => {
                 if (filter.key === 'dateRange') {
                   return (
                     <View key={`date-${index}`} style={styles.filterGap}>
-                      <BusinessDatePicker label="From" date={filters.fromDate} onDateChange={(d) => updateFilter('fromDate', d)} />
+                      <View style={styles.labelWithIcon}>
+                        <Ionicons name={ICONS.date} size={16} color={COLORS.primary} style={{ marginRight: 5 }} />
+                        <Text style={styles.filterLabel}>Select Range</Text>
+                      </View>
+                      <BusinessDatePicker label="From Date" date={filters.fromDate} onDateChange={(d) => updateFilter('fromDate', d)} />
                       <View style={{ height: 10 }} />
-                      <BusinessDatePicker label="To" date={filters.toDate} onDateChange={(d) => updateFilter('toDate', d)} />
+                      <BusinessDatePicker label="To Date" date={filters.toDate} onDateChange={(d) => updateFilter('toDate', d)} />
                     </View>
                   );
                 }
+                
                 if (filter.key === 'toDateOnly') {
                   return (
                     <View key={`date-single-${index}`} style={styles.filterGap}>
+                      <View style={styles.labelWithIcon}>
+                        <Ionicons name={ICONS.date} size={16} color={COLORS.primary} style={{ marginRight: 5 }} />
+                        <Text style={styles.filterLabel}>As of Date</Text>
+                      </View>
                       <BusinessDatePicker label="As of Date" date={filters.toDate} onDateChange={(d) => updateFilter('toDate', d)} />
                     </View>
                   );
                 }
+
                 if (filter.type === 'dropdown') {
                   return (
                     <View key={filter.key} style={styles.filterGap}>
-                        <CustomDropdown label={filter.label} apiEndpoint={filter.api} valueField={filter.valueField} labelField={filter.labelField} value={filters[filter.key]} onChange={(val) => updateFilter(filter.key, val)} />
+                      <View style={styles.labelWithIcon}>
+                        <Ionicons name={ICONS.dropdown} size={16} color={COLORS.primary} style={{ marginRight: 5 }} />
+                        <Text style={styles.filterLabel}>{filter.label}</Text>
+                      </View>
+                      <CustomDropdown label={filter.label} apiEndpoint={filter.api} valueField={filter.valueField} labelField={filter.labelField} value={filters[filter.key]} onChange={(val) => updateFilter(filter.key, val)} />
                     </View>
                   );
                 }
+
                 if (filter.type === 'button') {
                   return (
                     <TouchableOpacity 
@@ -254,7 +240,7 @@ const handleRowPrint = async (item) => {
                       style={[styles.actionBtn, { backgroundColor: filter.color || COLORS.secondary }]} 
                       onPress={() => handleButtonClick(filter.action)}
                     >
-                      <Ionicons name={filter.icon} size={18} color="white" style={{ marginRight: 8 }} />
+                      <Ionicons name={filter.action === 'show' ? 'search-outline' : 'print-outline'} size={18} color="white" style={{ marginRight: 8 }} />
                       <Text style={styles.btnText}>{filter.label}</Text>
                     </TouchableOpacity>
                   );
@@ -299,25 +285,20 @@ const handleRowPrint = async (item) => {
 
 const styles = StyleSheet.create({
   rootContainer: { flex: 1, backgroundColor: '#F4F7FE' },
-header: { backgroundColor: COLORS.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 15, borderBottomLeftRadius: 20, borderBottomRightRadius: 20 },
-  
-  headerLeft: { flex: 1, flexDirection: 'row', alignItems: 'center' },
-  menuButton: { padding: 5 },
-  optionButton: { padding: 8 },
-  headerTitle: { color: 'white', fontWeight: 'bold', flex: 1, marginLeft: 8 },
+  header: { backgroundColor: COLORS.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 8, borderBottomLeftRadius: 20, borderBottomRightRadius: 20 },
+  headerLeft: { flexDirection: 'row', alignItems: 'center' },
+  menuButton: { padding: 8 , marginTop:10},
+  headerTitle: { color: 'white', fontSize: 20, fontWeight: 'bold', marginLeft: 8 , marginTop:10, flex: 1 },
   body: { flex: 1, flexDirection: 'row' },
-  sidebar: { 
-    backgroundColor: 'white', 
-    borderRightWidth: 1, 
-    borderColor: '#EEE', 
-    overflow: 'hidden',
-  },
+  sidebar: { backgroundColor: 'white', borderRightWidth: 1, borderColor: '#EEE', overflow: 'hidden' },
   sidebarContent: { padding: 12, paddingBottom: 40 },
   content: { flex: 1, backgroundColor: '#FFF' },
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadingText: { marginTop: 10, color: '#666', fontWeight: '500' },
   filterTitle: { fontWeight: 'bold', color: COLORS.primary, marginBottom: 12, fontSize: 13, textTransform: 'uppercase' },
   filterGap: { marginBottom: 15 },
+  labelWithIcon: { flexDirection: 'row', alignItems: 'center', marginBottom: 5 },
+  filterLabel: { fontWeight: 'bold', color: '#555', fontSize: 12 },
   tabContainer: { flexDirection: 'row', marginBottom: 20, backgroundColor: '#F5F5F5', borderRadius: 8, padding: 3 },
   tabButton: { flex: 1, alignItems: 'center', borderRadius: 6, paddingVertical: 8 },
   tabButtonActive: { backgroundColor: 'white', elevation: 2 },
@@ -327,6 +308,7 @@ header: { backgroundColor: COLORS.primary, flexDirection: 'row', alignItems: 'ce
   btnText: { color: 'white', fontWeight: 'bold', fontSize: 14 },
   emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
   emptyText: { color: '#AAA', textAlign: 'center', marginTop: 15 },
+  optionButton: { padding: 8, marginTop: 10 , marginLeft:-30}
 });
 
 export default GenericReportScreen;

@@ -184,15 +184,15 @@ const formatCurrency = (val) => { if (!val) return '0.00'; const num = typeof va
 const formatDate = (val) => { if (!val) return '-'; if (typeof val === 'string' && val.includes('/Date(')) { const num = parseInt(val.match(/\d+/)[0], 10); return new Date(num).toLocaleDateString(); } return new Date(val).toLocaleDateString(); };
 
 const styles = StyleSheet.create({
-  gridContainer: { flex: 1, backgroundColor: 'white', borderWidth: 1, borderColor: '#DDD' },
+  gridContainer: { flex: 1, backgroundColor: 'white', borderWidth: 1, borderColor: '#DDD' , borderRadius:10},
   cell: { paddingHorizontal: 6, paddingVertical: 4, justifyContent: 'center' },
-  headerRow: { flexDirection: 'row', backgroundColor: COLORS.primary, minHeight: 50, alignItems: 'center' },
+  headerRow: { flexDirection: 'row', backgroundColor: COLORS.primary, minHeight: 50, alignItems: 'center', borderRadius:10 },
   headerText: { color: 'white', fontWeight: 'bold', fontSize: 12, lineHeight: 15 },
   row: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#F0F0F0', minHeight: 55, alignItems: 'center' },
   alternateRow: { backgroundColor: '#F8F9FA' },
   expandedRow: { backgroundColor: '#E3F2FD', borderLeftWidth: 4, borderLeftColor: COLORS.secondary },
   cellText: { fontSize: 11, color: '#333', lineHeight: 14 },
-  footerRow: { flexDirection: 'row', backgroundColor: '#EEE', borderTopWidth: 2, borderColor: '#999', minHeight: 50, alignItems: 'center' },
+  footerRow: { flexDirection: 'row', backgroundColor: '#EEE', borderTopWidth: 2, borderColor: '#999', minHeight: 50, alignItems: 'center',  borderRadius:10 },
   footerLabel: { fontWeight: 'bold', fontSize: 13, color: 'black' },
   footerValue: { fontWeight: 'bold', fontSize: 12, color: COLORS.primary },
   groupHeaderRow: { flexDirection: 'row', backgroundColor: '#E0F7FA', padding: 8, borderBottomWidth: 1, borderColor: '#B2EBF2', alignItems: 'center' },

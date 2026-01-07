@@ -70,7 +70,7 @@ const CustomDropdown = ({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>{label}</Text>
+      {/* <Text style={styles.label}>{label}</Text> */}
       <Dropdown
         style={[styles.dropdown, isFocus && { borderColor: COLORS.secondary }]}
         placeholderStyle={styles.placeholderStyle}

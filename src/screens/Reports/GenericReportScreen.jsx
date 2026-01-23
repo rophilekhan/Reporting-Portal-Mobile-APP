@@ -121,6 +121,7 @@ const GenericReportScreen = ({ route, navigation }) => {
         });
         url += `&UserID=${userID}&companyBranchID=${branchID}`;
       }
+      console.log("telerick url: " +  url)
       Linking.openURL(url).catch(err => console.error(err));
     }
   };

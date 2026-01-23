@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "401679790346",
+    "project_id": "xinacle-erp",
+    "storage_bucket": "xinacle-erp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:401679790346:android:da9ebbfb2779992a370af3",
+        "android_client_info": {
+          "package_name": "com.xinacleerp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBmmCt7Jf06j_KK88Di6zaj3ex6XWcyewc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

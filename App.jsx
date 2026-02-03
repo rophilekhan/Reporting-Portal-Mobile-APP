@@ -17,6 +17,7 @@ import DashboardScreen from './src/screens/Dashboard/DashboardScreen';
 import UserProfileScreen from './src/screens/Dashboard/UserProfileScreen';
 import GenericReportScreen from './src/screens/Reports/GenericReportScreen';
 import CustomDrawerContent from './src/navigation/CustomDrawerContent';
+import QRScannerScreen from './src/screens/Auth/QRScannerScreen';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BranchProvider } from './src/context/BranchContext'; 
 
@@ -115,6 +116,7 @@ const App = () => {
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="Splash" component={SplashScreen} />
+          <Stack.Screen name="QRScanner" component={QRScannerScreen} />
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="DrawerRoot" component={DrawerGroup} />
         </Stack.Navigator>

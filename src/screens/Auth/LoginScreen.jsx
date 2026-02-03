@@ -125,6 +125,9 @@ const LoginScreen = ({ navigation }) => {
           await AsyncStorage.removeItem('password');
           await AsyncStorage.setItem('rememberMe', 'false');
       }
+      // Inside handleLogin after success
+const response = await loginUser(username, password);
+await AsyncStorage.setItem('userResponse', JSON.stringify(response));
       setShowSuccess(true);
       showToast('Login Successful!', 'success');
       setTimeout(() => { navigation.replace('DrawerRoot'); }, 1500);

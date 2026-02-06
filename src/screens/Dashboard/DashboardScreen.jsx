@@ -22,95 +22,17 @@ import BusinessDatePicker from '../../components/atoms/BusinessDatePicker';
 import { COLORS } from '../../config/theme';
 import { BranchContext } from '../../context/BranchContext';
 
-const API_URL = "https://erp.hassoftsolutions.com"; 
-
 const MONTH_COLORS = ["#00C853", "#F44336", "#FF9800", "#2962FF", "#9C27B0", "#00BCD4"];
 const STOCK_COLORS = ["#5C6BC0", "#5E72E4", "#F06292", "#EF5350", "#42A5F5"];
 const BAR_COLORS = ["#00C853", "#F44336", "#FF9800", "#2962FF", "#9C27B0", "#00BCD4"];
 
-// --- SHIMMER COMPONENT ---
-const ShimmerPlaceholder = ({ style }) => {
-  const shimmerAnimatedValue = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(shimmerAnimatedValue, { toValue: 1, duration: 1000, easing: Easing.linear, useNativeDriver: true }),
-        Animated.timing(shimmerAnimatedValue, { toValue: 0, duration: 1000, easing: Easing.linear, useNativeDriver: true }),
-      ])
-    ).start();
-  }, []);
-  const opacity = shimmerAnimatedValue.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.7] });
-  return <Animated.View style={[style, { backgroundColor: '#E1E9EE', opacity }]} />;
-};
-
-const SkeletonLoader = ({ cardWidth, padding }) => (
-  <ScrollView contentContainerStyle={{ paddingBottom: 20 }} showsVerticalScrollIndicator={false}>
-    <View style={[styles.gridContainer, { padding: padding }]}>
-      {[1, 2, 3, 4, 5, 6].map((i) => (
-        <View key={i} style={[styles.card, { width: cardWidth, height: 80, borderLeftWidth: 0 }]}>
-           <View style={{ flex: 1, padding: 12 }}>
-              <ShimmerPlaceholder style={{ width: '60%', height: 10, borderRadius: 5, marginBottom: 10 }} />
-              <ShimmerPlaceholder style={{ width: '80%', height: 20, borderRadius: 5 }} />
-           </View>
-        </View>
-      ))}
-    </View>
-    <View style={{ paddingHorizontal: padding, marginBottom: 16 }}>
-        <View style={[styles.chartCard, { height: 240, justifyContent: 'center' }]}>
-           <ShimmerPlaceholder style={{ width: '40%', height: 15, borderRadius: 5, marginBottom: 20 }} />
-           <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-around', height: 150 }}>
-             {[1, 2, 3, 4, 5, 6].map(b => <ShimmerPlaceholder key={b} style={{ width: 30, height: 20 * b + 20, borderRadius: 4 }} />)}
-           </View>
-        </View>
-    </View>
-  </ScrollView>
-);
-
 // --- HELPERS ---
-const parseDate = (dateStr) => {
-    if (!dateStr) return new Date();
-    if (typeof dateStr === 'string' && dateStr.includes('/Date(')) {
-        const timestamp = parseInt(dateStr.match(/\d+/)[0], 10);
-        return new Date(timestamp);
-    }
-    return new Date(dateStr);
-};
-
 const formatCardValue = (val) => {
     const num = Number(val);
     if (isNaN(num) || num === 0) return "0";
     if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, '') + "M";
     if (num >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + "k";
     return num.toString();
-};
-
-const formatMonthYear = (date) => {
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    return `${months[date.getMonth()]} ${date.getFullYear()}`;
-};
-
-const formatShortMonth = (date) => {
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    return months[date.getMonth()];
-};
-
-const formatDateForAPI = (date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-};
-
-const getDateRange = (filterType, customFrom, customTo) => {
-  const toDate = new Date(); 
-  const fromDate = new Date();
-  if (filterType === 'Last Month') fromDate.setMonth(toDate.getMonth() - 1);
-  else if (filterType === '6 Months') fromDate.setMonth(toDate.getMonth() - 6);
-  else if (filterType === '1 Year') fromDate.setFullYear(toDate.getFullYear() - 1);
-  else if (filterType === 'Custom' && customFrom && customTo) {
-      return { fromDate: formatDateForAPI(customFrom), toDate: formatDateForAPI(customTo) };
-  }
-  return { fromDate: formatDateForAPI(fromDate), toDate: formatDateForAPI(toDate) };
 };
 
 const formatCurrencyWithCommas = (val) => {
@@ -126,26 +48,22 @@ const formatYAxisLabel = (val) => {
     return num.toString();
 };
 
-const aggregateSalesData = (salesData) => {
-    if (!salesData || salesData.length === 0) return null;
-    const aggregated = {};
-    salesData.forEach(item => {
-        const date = parseDate(item.Date);
-        const key = `${formatShortMonth(date)} ${String(date.getFullYear()).slice(-2)}`;
-        aggregated[key] = (aggregated[key] || 0) + (item.TotalSale || 0);
-    });
-    const labels = Object.keys(aggregated);
-    const data = Object.values(aggregated);
-    return {
-        labels,
-        datasets: [{
-            data,
-            colors: labels.map((_, idx) => () => BAR_COLORS[idx % BAR_COLORS.length])
-        }]
-    };
-};
-
 // --- COMPONENTS ---
+const StatCard = ({ title, value, icon, color, accentColor, isSmallScreen, cardWidth }) => (
+  <View style={[styles.card, { width: cardWidth }]}>
+    <View style={[styles.cardLeftStrip, { backgroundColor: color }]} />
+    <View style={styles.cardMainContent}>
+      <View style={styles.textContainer}>
+        <Text style={[styles.cardTitle, { fontSize: isSmallScreen ? 8 : 9 }]}>{title}</Text>
+        <Text style={[styles.cardValue, { fontSize: isSmallScreen ? 16 : 18 }]} numberOfLines={2} adjustsFontSizeToFit>{value}</Text>
+      </View>
+      <View style={[styles.iconBox, { backgroundColor: accentColor, width: isSmallScreen ? 32 : 38, height: isSmallScreen ? 32 : 38 }]}>
+        <Ionicons name={icon} size={isSmallScreen ? 18 : 22} color={color} />
+      </View>
+    </View>
+  </View>
+);
+
 const CustomLegend = ({ data, shape = 'circle', isSmallScreen }) => {
   const total = data.reduce((sum, item) => sum + (item.population > 0 ? item.population : 0), 0);
   return (
@@ -169,30 +87,7 @@ const CustomLegend = ({ data, shape = 'circle', isSmallScreen }) => {
   );
 };
 
-const StatCard = ({ title, value, icon, color, accentColor, isSmallScreen, cardWidth }) => (
-  <View style={[styles.card, { width: cardWidth }]}>
-    <View style={[styles.cardLeftStrip, { backgroundColor: color }]} />
-    <View style={styles.cardMainContent}>
-      <View style={styles.textContainer}>
-        <Text style={[styles.cardTitle, { fontSize: isSmallScreen ? 8 : 9 }]}>{title}</Text>
-        <Text style={[styles.cardValue, { fontSize: isSmallScreen ? 16 : 18 }]} numberOfLines={2} adjustsFontSizeToFit>{value}</Text>
-      </View>
-      <View style={[styles.iconBox, { backgroundColor: accentColor, width: isSmallScreen ? 32 : 38, height: isSmallScreen ? 32 : 38 }]}>
-        <Ionicons name={icon} size={isSmallScreen ? 18 : 22} color={color} />
-      </View>
-    </View>
-  </View>
-);
-
-const ChartContainer = ({ title, children, isTablet }) => (
-  <View style={styles.chartCard}>
-    <Text style={[styles.chartTitle, { fontSize: isTablet ? 18 : 16 }]}>{title}</Text>
-    <View style={styles.chartWrapper}>{children}</View>
-  </View>
-);
-
 const DashboardScreen = ({ navigation }) => {
-  const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const isTablet = screenWidth >= 768;
@@ -204,93 +99,91 @@ const DashboardScreen = ({ navigation }) => {
   const columnCount = isLandscape ? 4 : 2;
   const CARD_WIDTH = (screenWidth - (PADDING * 2) - (GAP * (columnCount - 1))) / columnCount;
 
-  const { companyBranchId, loadBranchFromStorage, isBranchLoading } = useContext(BranchContext);
+  const { companyBranchId, loadBranchFromStorage } = useContext(BranchContext);
   
   const [selectedFilter, setSelectedFilter] = useState('6 Months');
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [fromDate, setFromDate] = useState(new Date());
   const [toDate, setToDate] = useState(new Date());
-  
-  // Naya state manual trigger ke liye
   const [triggerFetch, setTriggerFetch] = useState(0);
 
   const [dashboardStats, setDashboardStats] = useState(null);
   const [salesChartData, setSalesChartData] = useState(null);
   const [purchaseChartData, setPurchaseChartData] = useState([]);
   const [stockChartData, setStockChartData] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => { loadBranchFromStorage(); }, []);
+  // Load branch and data on mount
+  useEffect(() => {
+    const init = async () => {
+        await loadBranchFromStorage();
+        fetchDashboardData(); 
+    };
+    init();
+  }, []);
 
-  // Filter logic logic update: Custom hone par sirf triggerFetch par chalega
+  // Dashboard refresh jab branch ya filter change ho
   useEffect(() => { 
-    if (companyBranchId) fetchDashboardData(); 
+    fetchDashboardData(); 
   }, [companyBranchId, selectedFilter === 'Custom' ? triggerFetch : selectedFilter]);
 
   const fetchDashboardData = async () => {
-    if(!companyBranchId) return; 
     setLoading(true);
-    const range = getDateRange(selectedFilter, fromDate, toDate);
-    const branchQuery = `companyBranchID=${companyBranchId}`;
-
     try {
-      const queryParams = `fromDate=${range.fromDate}&toDate=${range.toDate}&${branchQuery}`;
-      const [statsRes, salesRes, purchaseRes, stockRes] = await Promise.all([
-        fetch(`${API_URL}/MobileReportsAPI/GetDashboardStats?${queryParams}`),
-        fetch(`${API_URL}/MobileReportsAPI/GetDayWiseSales?${queryParams}`),
-        fetch(`${API_URL}/MobileReportsAPI/GetDayWisePurchase?${queryParams}`),
-        fetch(`${API_URL}/MobileReportsAPI/GetTopStockData?${queryParams}`)
+      // Fake delay
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      // LOGIC: Branch ID (1, 2, 3...) ke mutabiq data multiply karein taake farq nazar aaye
+      const multiplier = companyBranchId ? parseInt(companyBranchId) : 1;
+
+      // 1. Dynamic Stats based on branch
+      setDashboardStats({
+        TotalReceivable: 5840000 * multiplier,
+        TotalSales: 12450000 * multiplier,
+        TotalPurchaseAmount: 8200000 * multiplier,
+        TotalUnpostedCheques: multiplier > 1 ? `0${multiplier * 4}` : "08",
+        TotalPaymentVoucher: 245000 * multiplier,
+        TotalExpenseAmount: 980000 * multiplier
+      });
+
+      // 2. Dynamic Sales Chart
+      const baseSales = [450000, 620000, 890000, 710000, 950000, 1100000];
+      setSalesChartData({
+        labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+        datasets: [{
+          data: baseSales.map(val => val * multiplier),
+          colors: [0, 1, 2, 3, 4, 5].map((idx) => () => BAR_COLORS[idx % BAR_COLORS.length])
+        }]
+      });
+
+      // 3. Dynamic Stock
+      setStockChartData([
+        { name: "Cement Bags", population: 5000 * multiplier, color: STOCK_COLORS[0] },
+        { name: "Steel Bars", population: 3200 * multiplier, color: STOCK_COLORS[1] },
+        { name: "Bricks", population: 15000 * multiplier, color: STOCK_COLORS[2] },
+        { name: "Paint", population: 1200 * multiplier, color: STOCK_COLORS[3] },
+        { name: "Tiles", population: 4500 * multiplier, color: STOCK_COLORS[4] }
       ]);
 
-      const statsJson = await statsRes.json();
-      if (statsJson?.Data) setDashboardStats(statsJson.Data);
-
-      const salesJson = await salesRes.json();
-      if (Array.isArray(salesJson)) {
-          salesJson.sort((a, b) => parseDate(a.Date) - parseDate(b.Date));
-          setSalesChartData(aggregateSalesData(salesJson));
-      }
-
-      const purchaseJson = await purchaseRes.json();
-      if (Array.isArray(purchaseJson)) {
-         const monthlyPurchases = {};
-         purchaseJson.forEach(item => {
-             const monthKey = formatMonthYear(parseDate(item.Date));
-             monthlyPurchases[monthKey] = (monthlyPurchases[monthKey] || 0) + item.TotalPurchase;
-         });
-         setPurchaseChartData(Object.keys(monthlyPurchases).map((key, index) => ({
-             name: key, population: monthlyPurchases[key] > 0 ? monthlyPurchases[key] : 0,
-             color: MONTH_COLORS[index % MONTH_COLORS.length]
-         })));
-      }
-
-      const stockJson = await stockRes.json();
-      if (stockJson?.success && stockJson?.topProducts) {
-          setStockChartData(stockJson.topProducts.slice(0, 5).map((item, index) => ({
-              name: item.ProductName,
-              population: item.TotalBalance > 0 ? item.TotalBalance : 0,
-              color: STOCK_COLORS[index % STOCK_COLORS.length]
-          })));
-      }
-    } catch (error) { console.error(error); } finally { setLoading(false); }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleApplyFilter = () => {
-    setTriggerFetch(prev => prev + 1);
-  };
+  const handleApplyFilter = () => setTriggerFetch(prev => prev + 1);
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
-      {isFocused && (
-        <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} translucent={false} />
-      )}
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} translucent={false} />
       
       <View style={[styles.header, { paddingTop: Platform.OS === 'ios' ? insets.top : 22 }]}>
         <View style={styles.headerLeft}>
           <TouchableOpacity onPress={() => navigation.dispatch(DrawerActions.openDrawer())} style={styles.menuButton}>
             <Ionicons name="menu" size={28} color="white" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>ERP Dashboard</Text>
+          <Text style={styles.headerTitle}>Dashboard</Text>
         </View>
         <TouchableOpacity style={styles.filterButton} onPress={() => setShowFilterModal(true)}>
           <Text style={styles.filterText}>{selectedFilter}</Text>
@@ -298,32 +191,14 @@ const DashboardScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      {loading || isBranchLoading ? (
-        <SkeletonLoader cardWidth={CARD_WIDTH} padding={PADDING} />
+      {loading ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+          <Text style={{ marginTop: 10, color: '#666' }}>Refreshing Data for Branch...</Text>
+        </View>
       ) : (
         <ScrollView contentContainerStyle={{ paddingBottom: 20 }} showsVerticalScrollIndicator={false}>
           
-          {selectedFilter === 'Custom' && (
-            <View style={styles.customDateSection}>
-              <View style={{ flex: 1, flexDirection: 'row', alignItems: 'flex-end' }}>
-                <View style={{ flex: 1 }}>
-                   <BusinessDatePicker label="From Date" date={fromDate} onDateChange={(d) => setFromDate(d)} />
-                </View>
-                <View style={{ width: 10 }} />
-                <View style={{ flex: 1 }}>
-                   <BusinessDatePicker label="To Date" date={toDate} onDateChange={(d) => setToDate(d)} />
-                </View>
-              </View>
-              {/* Naya Filter Button Icon */}
-              <TouchableOpacity 
-                style={styles.applyFilterBtn} 
-                onPress={handleApplyFilter}
-              >
-                <Ionicons name="funnel-outline" size={22} color="white" />
-              </TouchableOpacity>
-            </View>
-          )}
-
           <View style={[styles.gridContainer, { padding: PADDING }]}>
             <StatCard title="TOTAL RECEIVABLE" value={formatCardValue(dashboardStats?.TotalReceivable)} icon="cash-outline" color="#2E7D32" accentColor="#E8F5E9" cardWidth={CARD_WIDTH} isSmallScreen={isSmallScreen} />
             <StatCard title="TOTAL SALES" value={formatCardValue(dashboardStats?.TotalSales)} icon="trending-up-outline" color="#1976D2" accentColor="#E3F2FD" cardWidth={CARD_WIDTH} isSmallScreen={isSmallScreen} />
@@ -333,49 +208,54 @@ const DashboardScreen = ({ navigation }) => {
             <StatCard title="TOTAL EXPENSES" value={formatCardValue(dashboardStats?.TotalExpenseAmount)} icon="wallet-outline" color="#E65100" accentColor="#FFF3E0" cardWidth={CARD_WIDTH} isSmallScreen={isSmallScreen} />
           </View>
 
-          <View style={{ paddingHorizontal: PADDING, marginBottom: 16 }}>
-            <ChartContainer title="Sales Performance" isTablet={isTablet}>
-              {salesChartData ? (
-                <View style={styles.barChartContainer}>
-                  <View style={styles.yAxisContainer}>
+          <View style={styles.chartSection}>
+            <Text style={styles.chartHeader}>Sales Performance</Text>
+            {salesChartData && (
+               <View style={styles.barChartContainer}>
+                <View style={styles.yAxisContainer}>
                     {[4, 3, 2, 1, 0].map((_, idx) => {
-                      const maxValue = Math.max(...salesChartData.datasets[0].data, 1);
-                      return <Text key={idx} style={styles.yAxisLabel}>{formatYAxisLabel((maxValue / 4) * (4 - idx))}</Text>;
+                      const maxVal = Math.max(...salesChartData.datasets[0].data, 1);
+                      return <Text key={idx} style={styles.yAxisLabel}>{formatYAxisLabel((maxVal / 4) * (4 - idx))}</Text>;
                     })}
-                  </View>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                    <BarChart data={salesChartData} width={Math.max(screenWidth - 100, salesChartData.labels.length * 70)} height={200}
-                      chartConfig={{ backgroundGradientFrom: "#fff", backgroundGradientTo: "#fff", color: (opacity = 1) => `rgba(0,0,0, ${opacity})`, labelColor: () => `#666`, barPercentage: 0.6, propsForBackgroundLines: { stroke: '#f0f0f0' } }}
-                      fromZero withCustomBarColorFromData flatColor withHorizontalLabels={false} style={{ borderRadius: 16 }} />
-                  </ScrollView>
                 </View>
-              ) : <Text style={styles.noDataText}>No Sales Data</Text>}
-            </ChartContainer>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    <BarChart
+                        data={salesChartData}
+                        width={Math.max(screenWidth - 100, 450)}
+                        height={220}
+                        chartConfig={{
+                            backgroundGradientFrom: "#fff",
+                            backgroundGradientTo: "#fff",
+                            color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                            labelColor: () => `#666`,
+                            barPercentage: 0.6,
+                        }}
+                        fromZero
+                        withCustomBarColorFromData
+                        flatColor
+                        withHorizontalLabels={false}
+                    />
+                </ScrollView>
+               </View>
+            )}
           </View>
 
-          <View style={{ paddingHorizontal: PADDING, marginBottom: 16 }}>
-            <ChartContainer title="Monthly Performance" isTablet={isTablet}>
-               {purchaseChartData.length > 0 ? (
-                  <View style={styles.centeredChart}>
-                    <PieChart data={purchaseChartData} width={screenWidth - 40} height={200} accessor={"population"} backgroundColor={"transparent"} paddingLeft={"15"} center={[screenWidth / 4.5, 0]} hasLegend={false} chartConfig={{ color: (op = 1) => `rgba(0,0,0,${op})` }} />
-                    <CustomLegend data={purchaseChartData} shape="square" isSmallScreen={isSmallScreen} />
-                  </View>
-               ) : <Text style={styles.noDataText}>No Purchase Data</Text>}
-            </ChartContainer>
-          </View>
-
-          <View style={{ paddingHorizontal: PADDING, marginBottom: 16 }}>
-            <ChartContainer title="Top 5 Products Stock" isTablet={isTablet}>
-              {stockChartData.length > 0 ? (
-                  <View style={styles.centeredChart}>
-                    <View style={styles.donutStack}>
-                      <PieChart data={stockChartData} width={screenWidth - 40} height={200} accessor={"population"} backgroundColor={"transparent"} paddingLeft={"15"} center={[screenWidth / 4.5, 0]} hasLegend={false} chartConfig={{ color: (op = 1) => `rgba(0,0,0,${op})` }} />
-                      <View style={[styles.donutHole, { width: 80, height: 80, borderRadius: 40, left: (screenWidth-40)/2.11 - 15 }]} />
-                    </View>
-                    <CustomLegend data={stockChartData} shape="circle" isSmallScreen={isSmallScreen} />
-                  </View>
-              ) : <Text style={styles.noDataText}>No Stock Data</Text>}
-            </ChartContainer>
+          <View style={styles.chartSection}>
+            <Text style={styles.chartHeader}>Top 5 Products Stock</Text>
+            <View style={styles.centeredChart}>
+               <PieChart
+                  data={stockChartData}
+                  width={screenWidth - 40}
+                  height={200}
+                  accessor={"population"}
+                  backgroundColor={"transparent"}
+                  paddingLeft={"15"}
+                  center={[screenWidth / 4.5, 0]}
+                  hasLegend={false}
+                  chartConfig={{ color: (op = 1) => `rgba(0,0,0,${op})` }}
+               />
+               <CustomLegend data={stockChartData} isSmallScreen={isSmallScreen} />
+            </View>
           </View>
         </ScrollView>
       )}
@@ -402,44 +282,41 @@ const DashboardScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F4F7FE' },
-  header: { backgroundColor: COLORS.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 8, borderBottomLeftRadius: 20, borderBottomRightRadius: 20 },
+  header: { backgroundColor: COLORS.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 12, borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
   headerLeft: { flexDirection: 'row', alignItems: 'center' },
   menuButton: { padding: 8 , marginTop:10},
   headerTitle: { color: 'white', fontSize: 20, fontWeight: 'bold', marginLeft: 8 , marginTop:10 },
-  filterButton: { flexDirection: 'row', alignItems: 'baseline', backgroundColor: 'rgba(255,255,255,0.2)', marginTop:10, paddingVertical: 6, paddingHorizontal: 16, borderRadius: 20 },
-  filterText: { color: 'white', marginRight: 4, fontWeight: '600' },
+  filterButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)', marginTop:10, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20 },
+  filterText: { color: 'white', marginRight: 6, fontWeight: '600', fontSize: 13 },
   customDateSection: { flexDirection: 'row', paddingHorizontal: 16, paddingTop: 16, alignItems: 'center' },
-  applyFilterBtn: { backgroundColor: COLORS.primary, padding: 8, borderRadius: 12, marginLeft: 10, elevation: 4, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 3, shadowOffset: { width: 0, height: 2 } },
+  applyFilterBtn: { backgroundColor: COLORS.primary, padding: 10, borderRadius: 12, marginLeft: 10 },
   gridContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-  card: { backgroundColor: 'white', borderRadius: 16, marginBottom: 12, flexDirection: 'row', overflow: 'hidden', elevation: 3, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 5 },
-  cardLeftStrip: { width: 5, height: '100%' },
-  cardMainContent: { flex: 1, flexDirection: 'row', padding: 12, alignItems: 'center', justifyContent: 'space-between' },
+  card: { backgroundColor: 'white', borderRadius: 18, marginBottom: 12, flexDirection: 'row', overflow: 'hidden', elevation: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 6 },
+  cardLeftStrip: { width: 6, height: '100%' },
+  cardMainContent: { flex: 1, flexDirection: 'row', padding: 14, alignItems: 'center', justifyContent: 'space-between' },
   textContainer: { flex: 1 },
-  cardTitle: { fontWeight: '700', color: '#A3AED0', marginBottom: 4, textTransform: 'uppercase' },
+  cardTitle: { fontWeight: '700', color: '#A3AED0', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
   cardValue: { fontWeight: '800', color: '#1B2559' },
-  iconBox: { borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-  chartCard: { backgroundColor: 'white', borderRadius: 20, padding: 16, elevation: 2 },
-  chartTitle: { fontWeight: 'bold', color: '#1B2559', marginBottom: 16 },
+  iconBox: { borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  chartSection: { backgroundColor: 'white', borderRadius: 24, padding: 20, marginHorizontal: 16, marginBottom: 16, elevation: 3 },
+  chartHeader: { fontWeight: 'bold', color: '#1B2559', marginBottom: 20, fontSize: 16 },
   barChartContainer: { flexDirection: 'row' },
-  yAxisContainer: { justifyContent: 'space-between', height: 170, paddingVertical: 10, marginRight: 8 },
-  yAxisLabel: { fontSize: 10, color: '#666', textAlign: 'right' },
+  yAxisContainer: { justifyContent: 'space-between', height: 180, paddingVertical: 10, marginRight: 10 },
+  yAxisLabel: { fontSize: 10, color: '#999', textAlign: 'right' },
   centeredChart: { alignItems: 'center' },
-  donutStack: { position: 'relative', justifyContent: 'center' },
-  donutHole: { position: 'absolute', backgroundColor: 'white', zIndex: 10, top: 60 },
-  legendWrapper: { width: '100%', marginTop: 10 },
-  legendRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12, alignItems: 'flex-start' },
-  legendLeft: { flexDirection: 'row', alignItems: 'flex-start', flex: 1.8, paddingRight: 10 },
+  legendWrapper: { width: '100%', marginTop: 15 },
+  legendRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
+  legendLeft: { flexDirection: 'row', flex: 1 },
   legendDot: { marginTop: 4 },
-  legendText: { color: '#666', fontWeight: '500', flex: 1, lineHeight: 18 },
-  legendRight: { flexDirection: 'row', alignItems: 'flex-start', marginTop: 2 },
-  legendValue: { fontWeight: 'bold', color: '#333' },
-  percentageText: { color: '#999', marginLeft: 4 },
-  noDataText: { textAlign: 'center', color: '#999', padding: 20 },
+  legendText: { color: '#666', fontSize: 13, flex: 1 },
+  legendRight: { flexDirection: 'row', alignItems: 'center' },
+  legendValue: { fontWeight: 'bold', color: '#333', fontSize: 13 },
+  percentageText: { color: '#AAA', marginLeft: 4, fontSize: 11 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
-  modalContent: { backgroundColor: 'white', borderRadius: 20, padding: 20, width: '80%' },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 15, textAlign: 'center' },
-  filterOption: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  filterOptionText: { fontSize: 16 }
+  modalContent: { backgroundColor: 'white', borderRadius: 24, padding: 24, width: '85%' },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 18, textAlign: 'center', color: '#333' },
+  filterOption: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
+  filterOptionText: { fontSize: 15, color: '#444' }
 });
 
 export default DashboardScreen;

@@ -3,7 +3,7 @@ export const getReportColumns = (reportName, subType = null) => {
   const MONEY_WIDTH = 120;
 
   const definitions = {
-    // --- ACCOUNTS ---
+    // ================= ACCOUNTS =================
     'Account Payables Report': [
       serialCol,
       { key: 'Account', title: 'Account No', width: 100 },
@@ -19,7 +19,6 @@ export const getReportColumns = (reportName, subType = null) => {
       { key: 'ClosingAmount', title: 'Closing', width: MONEY_WIDTH, type: 'money', total: true },
     ],
   
-    // ✅ CORRECTED KEYS (Matches your API JSON exactly)
     'Account Payment Summary': [
       { key: 'SerialNo', title: 'S.No', width: 50 },
       { key: 'Print', title: 'Print', width: 60, type: 'action' },
@@ -35,7 +34,6 @@ export const getReportColumns = (reportName, subType = null) => {
       { key: 'ChequeAmount', title: 'Cheque Amount', width: 120, type: 'money', total: true },
     ],
 
-    // ✅ RENAMED TO MATCH DRAWER & CONFIG
     'Account Receiving Summary': [
       serialCol,
       { key: 'Print', title: 'Print', width: 60, type: 'action' },
@@ -50,17 +48,17 @@ export const getReportColumns = (reportName, subType = null) => {
       { key: 'WithHoldingTax', title: 'W.H Tax', width: 100, type: 'money', total: true },
       { key: 'ChequeAmount', title: 'Cheque Amount', width: 100, type: 'money', total: true },
     ],
-   'Petty Cash Summary': [
-    
-      { key: 'ID', title: 'ID', width: 60 }, // The ID column itself
-      { key: 'Print', title: 'Print', width: 60, type: 'action' }, // Special 3-button column
+
+    'Petty Cash Summary': [
+      { key: 'ID', title: 'ID', width: 60 },
+      { key: 'Print', title: 'Print', width: 60, type: 'action' },
       { key: 'EDate', title: 'Date', width: 100, type: 'date' },
       { key: 'AccountTitle', title: 'Account Title', width: 200 },
       { key: 'Debit', title: 'Debit', width: MONEY_WIDTH, type: 'money', total: true },
       { key: 'Credit', title: 'Credit', width: MONEY_WIDTH, type: 'money', total: true },
       { key: 'Remarks', title: 'Remarks', width: 150 },
     ],
-   
+    
     'Expense Payment Summary': [
       { key: 'SerialNo', title: 'S.No', width: 50 },
       { key: 'Print', title: 'Print', width: 60, type: 'action' },
@@ -80,26 +78,21 @@ export const getReportColumns = (reportName, subType = null) => {
       { key: 'HeadName', title: 'Head', width: 200 }, 
       { key: 'TotalAmounts', title: 'Amount', width: 120, type: 'money', total: true },
     ],
-    // Sub-grid for Revenue (if you click a row)
     'Income Statement_Revenue_Sub': [
       { key: 'AccountTitle', title: 'Account Title', width: 200 },
       { key: 'Debit', title: 'Debit', width: 100, type: 'money' },
       { key: 'Credit', title: 'Credit', width: 100, type: 'money' },
     ],
-
-    // 2. Expense Tab Columns
     'Income Statement_Expense': [
       { key: 'HeadName', title: 'Head', width: 200 },
       { key: 'TotalAmounts', title: 'Amount', width: 120, type: 'money', total: true },
     ],
     
-   'Balance Sheet_Assets': [
+    'Balance Sheet_Assets': [
       { key: 'SerialNo', title: 'S.No', width: 50 },
       { key: 'AssetsAccountTitle', title: 'Account Title', width: 250 }, 
       { key: 'CreditAmount', title: 'Amount', width: 150, type: 'money', total: true },
     ],
-
-    // 2. Equity Tab (Matches your provided JSON)
     'Balance Sheet_Equity': [
       { key: 'SerialNo', title: 'S.No', width: 50 },
       { key: 'EquityAccountTitle', title: 'Account Title', width: 250 },
@@ -108,12 +101,12 @@ export const getReportColumns = (reportName, subType = null) => {
 
     'Trial Balance': [
       serialCol,
-      { key: 'AccountTitle', title: 'Customer', width: 200 },
+      { key: 'AccountTitle', title: 'Customer/Account', width: 200 },
       { key: 'DEBIT', title: 'Debit', width: 120, type: 'money', total: true },
       { key: 'CREDIT', title: 'Credit', width: 120, type: 'money', total: true },
     ],
 
-    // --- PURCHASE ---
+    // ================= PURCHASE =================
     'Purchase Summary': [
       serialCol,
       { key: 'Print', title: 'Print', width: 60, type: 'action' },
@@ -128,8 +121,8 @@ export const getReportColumns = (reportName, subType = null) => {
       { key: 'BalanceAmount', title: 'Balance Amount', width: MONEY_WIDTH, type: 'money', total: true },
       { key: 'ReturnAmount', title: 'Returned Amount', width: MONEY_WIDTH, type: 'money', total: true },
     ],
-'Purchase Summary_Sub': [
-      { key: 'ProductName', title: 'Product', width: 200 }, // Changed from 'Product' to 'ProductName'
+    'Purchase Summary_Sub': [
+      { key: 'ProductName', title: 'Product', width: 200 },
       { key: 'Quantity', title: 'Qty', width: 60, total: true },
       { key: 'Rate', title: 'Rate', width: 80, type: 'money' },
       { key: 'GrossAmount', title: 'Gross', width: 100, type: 'money', total: true },
@@ -139,6 +132,7 @@ export const getReportColumns = (reportName, subType = null) => {
       { key: 'SalesTaxAmount', title: 'Tax Amount', width: 100, type: 'money', total: true },
       { key: 'NetAmount', title: 'Net Amount', width: 100, type: 'money', total: true },
     ],
+
     'Good Recieving Summary': [
       serialCol,
       { key: 'Print', title: 'Print', width: 60, type: 'action' },
@@ -158,7 +152,7 @@ export const getReportColumns = (reportName, subType = null) => {
       { key: 'ApproveQuantity', title: 'Approved Qty', width: 80, total: true },
     ],
 
-    // --- SALES ---
+    // ================= SALES =================
     'Sales Summary': [
       serialCol,
       { key: 'Print', title: 'Print', width: 60, type: 'action' },
@@ -171,9 +165,9 @@ export const getReportColumns = (reportName, subType = null) => {
       { key: 'SalesTaxAmount', title: 'Sales Tax Amount', width: MONEY_WIDTH, type: 'money', total: true },
       { key: 'NetAmount', title: 'Net Amount', width: MONEY_WIDTH, type: 'money', total: true },
     ],
-'Sales Summary_Sub': [
+    'Sales Summary_Sub': [
       { key: 'ProductName', title: 'Product', width: 180 },
-      { key: 'Boxes', title: 'Boxes', width: 80, type: 'number' }, // New Column
+      { key: 'Boxes', title: 'Boxes', width: 80, type: 'number' }, 
       { key: 'Quantity', title: 'Quantity', width: 80, total: true },
       { key: 'Rate', title: 'Rate', width: 100, type: 'money' },
       { key: 'Discount', title: 'Discount %', width: 100 },
@@ -183,7 +177,8 @@ export const getReportColumns = (reportName, subType = null) => {
       { key: 'SalesTaxAmount', title: 'Sales Tax Amount', width: 120, type: 'money', total: true },
       { key: 'NetAmount', title: 'Net Amount', width: 120, type: 'money', total: true },
     ],
-    // --- INVENTORY ---
+
+    // ================= INVENTORY =================
     'Product Ledger': [
       serialCol,
       { key: 'EDate', title: 'Date', width: 100, type: 'date' },

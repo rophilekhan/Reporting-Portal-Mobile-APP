@@ -12,6 +12,7 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { COLORS } from '../../config/theme';
 
 const SplashScreen = ({ navigation }) => {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
@@ -61,7 +62,7 @@ const SplashScreen = ({ navigation }) => {
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
       <LinearGradient
-        colors={['#003892', '#0055c8', '#e98a57']}
+        colors={['#003892', '#0055c8', COLORS.secondary]}
         style={StyleSheet.absoluteFill}
       >
         {/* Background Decoration */}
@@ -77,7 +78,7 @@ const SplashScreen = ({ navigation }) => {
           <Animated.View style={[styles.poweredBadge, { opacity: fadeAnim }]}>
             <Text style={styles.poweredText}>
               Powered by{' '}
-              <Text style={styles.poweredBrand}>Hassoft Solutions</Text>
+              <Text style={styles.poweredBrand}>Codesphinx</Text>
             </Text>
           </Animated.View>
 
@@ -99,7 +100,7 @@ const SplashScreen = ({ navigation }) => {
               ]}
             >
               <Image
-                source={require('../../assets/xinacle-logo.png')}
+                source={require('../../assets/reporting-portal-logo.png')}
                 style={{ width: logoSize, height: logoSize }}
                 resizeMode="contain"
               />
@@ -109,10 +110,10 @@ const SplashScreen = ({ navigation }) => {
           {/* App Title */}
           <Animated.View style={{ opacity: fadeAnim, alignItems: 'center' }}>
             <Text style={[styles.title, { fontSize: 36 * scale }]}>
-              Xinacle <Text style={styles.highlight}>ERP</Text>
+              Reporting <Text style={styles.highlight}>Portal</Text>
             </Text>
             <Text style={[styles.subtitle, { fontSize: 16 * scale }]}>
-              Simplifying Business Processes
+              Simplifying Business Reports on your Mobile.
             </Text>
           </Animated.View>
 
@@ -152,7 +153,7 @@ const styles = StyleSheet.create({
   },
 
   poweredBrand: {
-    color: '#e98a57',
+    color: COLORS.secondary,
     fontWeight: 'bold',
     textShadowColor: 'rgba(0,0,0,0.6)',
     textShadowOffset: { width: 1, height: 1 },
@@ -189,7 +190,7 @@ const styles = StyleSheet.create({
   },
 
   highlight: {
-    color: '#e98a57',
+    color: COLORS.secondary,
   },
 
   subtitle: {

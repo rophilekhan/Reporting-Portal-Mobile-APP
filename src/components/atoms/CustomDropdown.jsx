@@ -17,7 +17,6 @@ const CustomDropdown = ({
   const [data, setData] = useState([]);
   const [isFocus, setIsFocus] = useState(false);
 
-  // 1. Optimize: Memoize the fetch logic to prevent stale closures and reduce overhead
   useEffect(() => {
     let isMounted = true;
 
@@ -25,33 +24,66 @@ const CustomDropdown = ({
       if (!apiEndpoint) return;
 
       try {
+        // ✅ API WALA KAAM COMMIT (COMMENTED)
+        /*
         const storedBranchID = await AsyncStorage.getItem('companyBranchId');
         const branchID = storedBranchID || '1';
-
-        const payload = {
-          companyBranchID: branchID
-        };
-
-        // console.log(`[Dropdown POST] ${label}: ...`); // Commented out for performance
-
+        const payload = { companyBranchID: branchID };
         const response = await axios.post(`${API_BASE_URL}${apiEndpoint}`, payload);
+        */
+
+        // --- STATIC MOCK LOGIC START ---
+        // Fake delay for dropdown loading feel
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        let staticData = [];
+        
+        // Label ke hisab se relevant static options
+        if (label.toLowerCase().includes('account')) {
+          staticData = [
+            { ID: '1001', Name: 'Cash Account' },
+            { ID: '1002', Name: 'Bank Alfalah' },
+            { ID: '1003', Name: 'Petty Cash' },
+          ];
+        } else if (label.toLowerCase().includes('supplier')) {
+          staticData = [
+            { ID: '1', Name: 'Global Logistics' },
+            { ID: '2', Name: 'Vertex Solutions' },
+            { ID: '3', Name: 'Prime Traders' },
+          ];
+        } else if (label.toLowerCase().includes('customer')) {
+          staticData = [
+            { ID: '101', Name: 'Walk-in Customer' },
+            { ID: '102', Name: 'Alpha Corporation' },
+            { ID: '103', Name: 'Zeta Industries' },
+          ];
+        } else if (label.toLowerCase().includes('product')) {
+          staticData = [
+            { ID: 'P1', Name: 'Cement Bag 50kg' },
+            { ID: 'P2', Name: 'Steel Rod 12mm' },
+            { ID: 'P3', Name: 'Bricks (Red)' },
+          ];
+        } else {
+          // Generic options for other dropdowns
+          staticData = [
+            { ID: '1', Name: `Mock ${label} 1` },
+            { ID: '2', Name: `Mock ${label} 2` },
+          ];
+        }
 
         if (isMounted) {
-          const rawData = Array.isArray(response.data) 
-            ? response.data 
-            : (response.data.Data || []);
-            
-          setData(rawData);
+          setData(staticData);
 
-          // ✅ AUTO-SELECT LOGIC (Unchanged)
-          if (rawData.length > 0) {
-             const firstItemValue = rawData[0][valueField];
-             
+          // ✅ AUTO-SELECT LOGIC (Same as original)
+          if (staticData.length > 0) {
+             const firstItemValue = staticData[0][valueField];
              if (value === undefined || value === null || value === '') {
                  onChange(firstItemValue);
              }
           }
         }
+        // --- STATIC MOCK LOGIC END ---
+
       } catch (err) {
         console.error(`[Dropdown Error] ${label}:`, err.message);
       }
@@ -60,9 +92,8 @@ const CustomDropdown = ({
     fetchData();
 
     return () => { isMounted = false; };
-  }, [apiEndpoint]); // Keep dependencies minimal
+  }, [apiEndpoint, label]); 
 
-  // 2. Optimize: Prevent new function creation on every render
   const handleDropdownChange = useCallback((item) => {
     onChange(item[valueField]);
     setIsFocus(false);
@@ -70,7 +101,6 @@ const CustomDropdown = ({
 
   return (
     <View style={styles.container}>
-      {/* <Text style={styles.label}>{label}</Text> */}
       <Dropdown
         style={[styles.dropdown, isFocus && { borderColor: COLORS.secondary }]}
         placeholderStyle={styles.placeholderStyle}
@@ -86,7 +116,7 @@ const CustomDropdown = ({
         value={value}
         onFocus={() => setIsFocus(true)}
         onBlur={() => setIsFocus(false)}
-        onChange={handleDropdownChange} // Use memoized handler
+        onChange={handleDropdownChange}
       />
     </View>
   );
@@ -94,13 +124,12 @@ const CustomDropdown = ({
 
 const styles = StyleSheet.create({
   container: { marginBottom: 15 },
-  label: { fontSize: 12, color: '#666', marginBottom: 5, fontWeight: '600' },
   dropdown: {
     height: 50,
     borderColor: '#DDD',
     borderWidth: 1,
     borderRadius: 8,
-    paddingHorizontal: 8,
+    paddingHorizontal: 12,
     backgroundColor: '#FFF'
   },
   placeholderStyle: { fontSize: 14, color: '#999' },
@@ -108,5 +137,4 @@ const styles = StyleSheet.create({
   inputSearchStyle: { height: 40, fontSize: 14 },
 });
 
-// 3. Optimize: Prevent re-renders if props haven't changed
 export default memo(CustomDropdown);

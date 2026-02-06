@@ -115,22 +115,41 @@ const LoginScreen = ({ navigation }) => {
     }
     setIsLoading(true);
     try {
-      await loginUser(username, password);
-      if (rememberMe) {
-          await AsyncStorage.setItem('username', username);
-          await AsyncStorage.setItem('password', password);
-          await AsyncStorage.setItem('rememberMe', 'true');
+      // --- API WALA KAAM COMMIT KAR DIYA ---
+      /*
+      const response = await loginUser(username, password);
+      await AsyncStorage.setItem('userResponse', JSON.stringify(response));
+      */
+
+      // --- STATIC MOCK LOGIC START ---
+      await new Promise(resolve => setTimeout(resolve, 1500)); // Fake delay
+
+      // Static validation (admin / 123456)
+      if (username === 'admin' && password === '123456') {
+          const response = {
+            status: 'success',
+            user: { name: 'Admin', email: 'admin@codesphinx.com' }
+          };
+          await AsyncStorage.setItem('userResponse', JSON.stringify(response));
+
+          if (rememberMe) {
+              await AsyncStorage.setItem('username', username);
+              await AsyncStorage.setItem('password', password);
+              await AsyncStorage.setItem('rememberMe', 'true');
+          } else {
+              await AsyncStorage.removeItem('username');
+              await AsyncStorage.removeItem('password');
+              await AsyncStorage.setItem('rememberMe', 'false');
+          }
+          
+          setShowSuccess(true);
+          showToast('Login Successful!', 'success');
+          setTimeout(() => { navigation.replace('DrawerRoot'); }, 1500);
       } else {
-          await AsyncStorage.removeItem('username');
-          await AsyncStorage.removeItem('password');
-          await AsyncStorage.setItem('rememberMe', 'false');
+          throw new Error('Invalid credentials. (Try admin/123456)');
       }
-      // Inside handleLogin after success
-const response = await loginUser(username, password);
-await AsyncStorage.setItem('userResponse', JSON.stringify(response));
-      setShowSuccess(true);
-      showToast('Login Successful!', 'success');
-      setTimeout(() => { navigation.replace('DrawerRoot'); }, 1500);
+      // --- STATIC MOCK LOGIC END ---
+
     } catch (error) {
       showToast(error.message || 'Invalid credentials.', 'error');
     } finally { setIsLoading(false); }
@@ -158,7 +177,7 @@ await AsyncStorage.setItem('userResponse', JSON.stringify(response));
           showsVerticalScrollIndicator={false}
         >
           <LinearGradient
-            colors={['#003892', '#0055c8', '#e98a57']}
+            colors={['#003892', '#0055c8', COLORS.secondary]}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
             style={[
               styles.headerContainer, 
@@ -173,14 +192,14 @@ await AsyncStorage.setItem('userResponse', JSON.stringify(response));
             
             <View style={[styles.logoOuterGlow, keyboardVisible && { scaleX: 0.6, scaleY: 0.6, marginBottom: 0 }]}>
               <View style={styles.logoContainer}>
-                <Image source={require('../../assets/xinacle-logo.png')} style={styles.logoImage} resizeMode="contain" />
+                <Image source={require('../../assets/reporting-portal-logo.png')} style={styles.logoImage} resizeMode="contain" />
               </View>
             </View>
 
             {!keyboardVisible && (
                 <>
-                    <Text style={styles.brandText}>Xinacle <Text style={styles.brandHighlight}>ERP</Text></Text>
-                    <Text style={styles.tagline}>Simplifying Business Processes.</Text>
+                    <Text style={styles.brandText}>Reporting <Text style={styles.brandHighlight}>Portal</Text></Text>
+                    <Text style={styles.tagline}>Simplifying Business Reports on your Mobile.</Text>
                 </>
             )}
           </LinearGradient>
@@ -241,7 +260,7 @@ await AsyncStorage.setItem('userResponse', JSON.stringify(response));
               </View>
 
               <TouchableOpacity style={styles.loginButtonWrapper} onPress={handleLogin} disabled={isLoading || showSuccess}>
-                <LinearGradient colors={['#003892', '#0055c8', '#e98a57']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.loginButton}>
+                <LinearGradient colors={['#003892', '#0055c8', COLORS.secondary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.loginButton}>
                   {isLoading ? <ActivityIndicator color="white" size="small" /> : showSuccess ? <Ionicons name="checkmark" size={24} color="white" /> : <Text style={styles.loginButtonText}>LOGIN</Text>}
                 </LinearGradient>
               </TouchableOpacity>
@@ -249,14 +268,13 @@ await AsyncStorage.setItem('userResponse', JSON.stringify(response));
             
             <View style={styles.footerContainer}>
               <Text style={styles.footerText}>© {currentYear} </Text>
-              <TouchableOpacity onPress={() => Linking.openURL('https://www.hassoftsolutions.com/')}><Text style={styles.footerLink}>Hassoft Solutions</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => Linking.openURL('http://codesphinx.netlify.app/')}><Text style={styles.footerLink}>Codesphinx</Text></TouchableOpacity>
               <Text style={styles.footerText}>. All Rights Reserved.</Text>
             </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* SUCCESS OVERLAY - ScrollView ke bahar taake screen center mein aaye */}
       {showSuccess && (
         <Animated.View 
           style={[
@@ -284,31 +302,10 @@ const styles = StyleSheet.create({
   logoOuterGlow: { width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center', marginBottom: 10 },
   logoContainer: { width: 100, height: 100, backgroundColor: 'white', borderRadius: 50, justifyContent: 'center', alignItems: 'center', elevation: 8, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 6 },
   logoImage: { width: 65, height: 65 },
-  
-  // Updated Success Overlay for Screen Center
-  successOverlay: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 999,
-  },
-  successCheckmarkCircle: {
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-  },
-
+  successOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', zIndex: 999 },
+  successCheckmarkCircle: { width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255, 255, 255, 0.95)', justifyContent: 'center', alignItems: 'center', elevation: 10, shadowColor: "#000", shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.3, shadowRadius: 10 },
   brandText: { fontSize: 28, fontWeight: 'bold', color: 'white', letterSpacing: 1.5 },
-  brandHighlight: { color: '#e98a57' },
+  brandHighlight: { color: COLORS.secondary },
   tagline: { color: 'rgba(255,255,255,0.9)', fontSize: 13 },
   whiteSection: { flex: 1, backgroundColor: 'white', borderTopRightRadius: width * 0.2, marginTop: -40, paddingTop: 15, justifyContent: 'space-between' },
   formContent: { paddingHorizontal: 30 },
@@ -328,13 +325,13 @@ const styles = StyleSheet.create({
   checkbox: { width: 18, height: 18, borderRadius: 4, borderWidth: 2, borderColor: '#003892', marginRight: 8, justifyContent: 'center', alignItems: 'center' },
   checkboxActive: { backgroundColor: '#003892' },
   rememberText: { color: '#666', fontSize: 12 },
-  forgotText: { color: '#e98a57', fontSize: 12, fontWeight: '600' },
+  forgotText: { color: COLORS.secondary, fontSize: 12, fontWeight: '600' },
   loginButtonWrapper: { marginBottom: 15 },
   loginButton: { height: 55, borderRadius: 27, justifyContent: 'center', alignItems: 'center', elevation: 4 },
   loginButtonText: { color: 'white', fontWeight: 'bold', fontSize: 16, letterSpacing: 1 },
   footerContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
   footerText: { color: '#999', fontSize: 12 },
-  footerLink: { color: '#e98a57', fontSize: 12, fontWeight: 'bold' },
+  footerLink: { color: COLORS.primary, fontSize: 14, fontWeight: 'bold' },
   toastContainer: { position: 'absolute', left: 20, right: 20, padding: 12, borderRadius: 10, flexDirection: 'row', alignItems: 'center', zIndex: 9999, elevation: 10 },
   toastText: { color: 'white', fontWeight: '600', fontSize: 13, flex: 1 },
 });

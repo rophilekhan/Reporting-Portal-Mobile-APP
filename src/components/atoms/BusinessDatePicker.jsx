@@ -10,19 +10,22 @@ const BusinessDatePicker = ({ label, date, onDateChange }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.label}>{label}</Text>
-      <TouchableOpacity style={styles.input} onPress={() => setOpen(true)}>
+      <TouchableOpacity 
+        style={styles.input} 
+        onPress={() => setOpen(true)}
+        activeOpacity={0.7}
+      >
         <Text style={styles.dateText}>
           {date
-  ? date.toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    })
-  : 'Select Date'}
-
+            ? date.toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+              })
+            : 'Select Date'}
         </Text>
-        {/* Using Primary color for the icon to match your theme */}
-        <Ionicons name="calendar-outline" size={20} color={COLORS.secondary} />
+        {/* Secondary color icon matches your 'Reporting Portal' theme */}
+        <Ionicons name="calendar-outline" size={18} color={COLORS.secondary} />
       </TouchableOpacity>
       
       <DatePicker
@@ -30,12 +33,13 @@ const BusinessDatePicker = ({ label, date, onDateChange }) => {
         open={open}
         date={date || new Date()}
         mode="date"
-        // --- Theme based selection design ---
+        // --- Static Portal Theme Design ---
         title={`Select ${label}`}
         confirmText="Confirm"
         cancelText="Cancel"
-        buttonColor={COLORS.secondary} // Matches the Confirm button to your primary theme color
-        theme="light" // Ensures the picker background is white for better readability
+        buttonColor={COLORS.secondary}
+        dividerColor={COLORS.primary}
+        theme="light" 
         onConfirm={(selectedDate) => {
           setOpen(false);
           onDateChange(selectedDate);
@@ -47,19 +51,40 @@ const BusinessDatePicker = ({ label, date, onDateChange }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { marginBottom: 15 },
-  label: { fontSize: 12, color: '#666', marginBottom: 5, fontWeight: '600' },
+  container: { 
+    marginBottom: 15,
+    flex: 1 // Added flex for side-by-side date pickers in dashboard
+  },
+  label: { 
+    fontSize: 11, 
+    color: '#888', 
+    marginBottom: 6, 
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5
+  },
   input: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 8,
-    padding: 12,
-    backgroundColor: '#FFF'
+    borderColor: '#E0E0E0',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    backgroundColor: '#FFF',
+    // Subtle shadow for modern look
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
   },
-  dateText: { color: '#333' }
+  dateText: { 
+    color: '#333',
+    fontSize: 14,
+    fontWeight: '500'
+  }
 });
 
 export default BusinessDatePicker;

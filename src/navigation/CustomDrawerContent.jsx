@@ -34,87 +34,74 @@ const MenuSection = ({ title, icon, children, isOpen, onPress }) => (
 );
 
 const CustomDrawerContent = ({ navigation }) => {
-  const [dynamicMenus, setDynamicMenus] = useState([]);
   const [openSection, setOpenSection] = useState(null);
-  const [userData, setUserData] = useState({ name: 'User', initials: 'U' });
+  const [userData, setUserData] = useState({ name: 'Rophile Ahmed', initials: 'R' });
 
-  // --- EXACT MAPPING TO App.jsx SCREEN NAMES ---
-  const routeNameMapping = {
-    "Account Payable Report": "Account Payables Report",
-    "Account Receivable Report": "Account Recievable Report",
-    "Accounts Payment Summary": "Account Payment Summary",
-    "Accounts Receiving Summary": "Account Receiving Summary",
-    "Good Receive Summary": "Good Recieving Summary",
-    "Purchase Summary Report": "Purchase Summary",
-    "Petty Cash Summary": "Petty Cash Summary",
-    "Expense Payment": "Expense Payment Summary",
-    "Income Statement": "Income Statement",
-    "Trial Balance": "Trial Balance",
-    "Balance Sheet": "Balance Sheet",
-    "Sales Summary": "Sales Summary",
-    "Product Ledger": "Product Ledger",
-    "Product Running Stock": "Product Running Stock"
-  };
+  // --- STATIC MENU DATA (Mapped to your Reports) ---
+  const staticMenus = [
+    {
+      title: 'Accounts',
+      icon: 'wallet-outline',
+      items: [
+        { title: 'Account Payables Report' },
+        { title: 'Account Recievable Report' },
+        { title: 'Account Payment Summary' },
+        { title: 'Account Receiving Summary' },
+        { title: 'Petty Cash Summary' },
+        { title: 'Expense Payment Summary' },
+        { title: 'Income Statement' },
+        { title: 'Balance Sheet' },
+        { title: 'Trial Balance' },
+      ]
+    },
+    {
+      title: 'Purchase',
+      icon: 'cart-outline',
+      items: [
+        { title: 'Purchase Summary' },
+        { title: 'Good Recieving Summary' },
+      ]
+    },
+    {
+      title: 'Sales',
+      icon: 'trending-up-outline',
+      items: [
+        { title: 'Sales Summary' },
+      ]
+    },
+    {
+      title: 'Inventory',
+      icon: 'layers-outline',
+      items: [
+        { title: 'Product Ledger' },
+        { title: 'Product Running Stock' },
+      ]
+    }
+  ];
 
   useEffect(() => {
-    const loadMenuData = async () => {
+    const loadUserData = async () => {
       try {
-        const jsonValue = await AsyncStorage.getItem('userResponse');
-        const response = jsonValue != null ? JSON.parse(jsonValue) : null;
-
-        if (response && response.menus) {
-          const groups = {
-            'Accounts': { icon: 'wallet-outline', items: [] },
-            'Purchase': { icon: 'cart-outline', items: [] },
-            'Sales': { icon: 'trending-up-outline', items: [] },
-            'Inventory': { icon: 'layers-outline', items: [] }
-          };
-
-          response.menus.forEach(item => {
-            if (item.ActionName) {
-              const ctrl = item.ControllerName?.toLowerCase();
-              const parentID = item.ParentSubMenuID;
-
-              // Categorization Logic
-              if (ctrl === 'accounts' || parentID === 3) {
-                groups['Accounts'].items.push(item);
-              } else if (ctrl === 'purchaseorder' || ctrl === 'goodreceive' || parentID === 4) {
-                groups['Purchase'].items.push(item);
-              } else if (ctrl === 'saleinvoice' || parentID === 5) {
-                groups['Sales'].items.push(item);
-              } else if (ctrl === 'inventory' || parentID === 163) {
-                groups['Inventory'].items.push(item);
-              }
-            }
+        const jsonValue = await AsyncStorage.getItem('userInfo');
+        const user = jsonValue != null ? JSON.parse(jsonValue) : null;
+        if (user) {
+          setUserData({ 
+            name: user.UserName || 'Admin', 
+            initials: (user.UserName || 'A').charAt(0).toUpperCase() 
           });
-
-          const finalMenu = Object.keys(groups)
-            .filter(key => groups[key].items.length > 0)
-            .map(key => ({
-              title: key,
-              icon: groups[key].icon,
-              subMenus: groups[key].items
-            }));
-
-          setDynamicMenus(finalMenu);
-          if(response.user) setUserData({ name: response.user.UserName, initials: response.user.UserName.charAt(0).toUpperCase() });
         }
-      } catch (e) { console.error("Drawer Load Error:", e); }
+      } catch (e) { console.log(e); }
     };
-    loadMenuData();
+    loadUserData();
   }, []);
 
-  const handleNavigation = (subMenu) => {
-    const targetScreen = routeNameMapping[subMenu.SubMenuTitle] || subMenu.SubMenuTitle;
-    
-    console.log(`Navigating to Screen: ${targetScreen}`);
-
-    // Nesting logic matches your App.jsx structure
+  const handleNavigation = (reportTitle) => {
+    // Navigation matches your DashboardStackNavigator setup
     navigation.navigate('DashboardTabs', {
       screen: 'HomeStack',
       params: { 
-        screen: targetScreen, // Navigation will look for this name in DashboardStackNavigator
-        params: { routeName: targetScreen } // Passing routeName for GenericReportScreen
+        screen: reportTitle, 
+        params: { routeName: reportTitle } 
       }
     });
   };
@@ -123,24 +110,28 @@ const CustomDrawerContent = ({ navigation }) => {
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <LinearGradient colors={['#003892', '#0055c8', '#e98a57']} style={styles.container}>
         <View style={styles.contentWrapper}>
+          
+          {/* BRAND HEADER */}
           <View style={styles.brandHeader}>
             <View style={styles.logoCircle}>
-              <Image source={require('../assets/xinacle-logo.png')} style={styles.logoImage} resizeMode="contain" />
+              <Image source={require('../assets/reporting-portal-logo.png')} style={styles.logoImage} resizeMode="contain" />
             </View>
-            <Text style={styles.brandText}>Xinacle <Text style={{color: '#e98a57'}}>ERP</Text></Text>
+            <Text style={styles.brandText}>Codesphinx <Text style={{color: '#e98a57'}}>Portal</Text></Text>
           </View>
 
+          {/* PROFILE SECTION */}
           <View style={styles.profileCard}>
             <View style={styles.avatarContainer}><Text style={styles.avatarText}>{userData.initials}</Text></View>
             <View style={styles.profileInfo}>
               <Text style={styles.profileName}>{userData.name}</Text>
-              <Text style={styles.profileRole}>Administrator</Text>
+              <Text style={styles.profileRole}>Portal Administrator</Text>
             </View>
           </View>
 
           <View style={styles.divider} />
 
           <ScrollView style={styles.menuScroll} showsVerticalScrollIndicator={false}>
+            {/* DASHBOARD LINK */}
             <TouchableOpacity 
               style={styles.menuItem} 
               onPress={() => navigation.navigate('DashboardTabs', { screen: 'HomeStack', params: { screen: 'DashboardMain' }})}
@@ -151,7 +142,8 @@ const CustomDrawerContent = ({ navigation }) => {
               </View>
             </TouchableOpacity>
 
-            {dynamicMenus.map((section, index) => (
+            {/* DYNAMIC SECTIONS */}
+            {staticMenus.map((section, index) => (
               <MenuSection 
                 key={index}
                 title={section.title} 
@@ -159,24 +151,25 @@ const CustomDrawerContent = ({ navigation }) => {
                 isOpen={openSection === section.title} 
                 onPress={() => setOpenSection(openSection === section.title ? null : section.title)}
               >
-                {section.subMenus.map((sub, subIndex) => (
+                {section.items.map((sub, subIndex) => (
                   <TouchableOpacity 
                     key={subIndex} 
                     style={styles.subMenuItem} 
-                    onPress={() => handleNavigation(sub)}
+                    onPress={() => handleNavigation(sub.title)}
                   >
                     <View style={styles.bulletPoint} />
-                    <Text style={styles.subMenuText}>{sub.SubMenuTitle}</Text>
+                    <Text style={styles.subMenuText}>{sub.title}</Text>
                   </TouchableOpacity>
                 ))}
               </MenuSection>
             ))}
           </ScrollView>
 
+          {/* FOOTER */}
           <View style={styles.footer}>
             <TouchableOpacity style={styles.logoutBtn} onPress={async () => { await logoutUser(); navigation.replace('Login'); }}>
               <View style={styles.logoutIconBox}><Ionicons name="log-out-outline" size={18} color="#fff" /></View>
-              <Text style={styles.logoutText}>Sign Out</Text>
+              <Text style={styles.logoutText}>Sign Out from Portal</Text>
             </TouchableOpacity>
           </View>
         </View>

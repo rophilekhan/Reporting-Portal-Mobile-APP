@@ -38,8 +38,6 @@ const GenericReportScreen = ({ route, navigation }) => {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const slideAnim = useRef(new Animated.Value(1)).current;
 
-  // --- ICONS MAPPING ---
-  // Agar aapko icon change karna hai to yahan se naam badlein
   const ICONS = {
     date: "calendar-outline",
     dropdown: "list-outline",
@@ -72,77 +70,36 @@ const GenericReportScreen = ({ route, navigation }) => {
 
   const openMenu = () => navigation.dispatch(DrawerActions.openDrawer());
 
+  // --- STATIC ACTION HANDLER ---
   const handleButtonClick = async (action) => {
     if (action === 'show') {
-      // Ab 'Show' button dabane par hi data load hoga
       if (isSidebarOpen) {
         setSidebarOpen(false);
         await new Promise(resolve => setTimeout(resolve, 200));
       }
-      loadReportData(); // Manual Trigger
+      // loadReportData call hogi, useReportLogic hook static data return karega
+      loadReportData(); 
     } 
     else if (action === 'print') {
-      if (!config.sidebarPrintConfig) {
-        Alert.alert("Print", "Print is not configured for this report.");
-        return;
-      }
+      // Print functionality ko filhal demo alert par rakh diya hai
+      Alert.alert("Print Demo", `${name} report printing is simulated in static mode.`);
+      
+      /* // API WALA KAAM COMMIT
       const { reportName } = config.sidebarPrintConfig;
-
-      const userJson = await AsyncStorage.getItem('userInfo');
-      const user = userJson ? JSON.parse(userJson) : null;
-      const userID = user?.UserID || '0';
-
-      const storedBranchID = await AsyncStorage.getItem('companyBranchId');
-      const branchID = storedBranchID || '1';
-
-      let url = `${BASE_URL}ReportViewer.aspx?Report='${reportName}'`;
-
-      if (name === 'Purchase Summary') {
-        const fromD = filters.fromDate instanceof Date 
-          ? `${filters.fromDate.getFullYear()}-${(filters.fromDate.getMonth() + 1).toString().padStart(2, '0')}-${filters.fromDate.getDate().toString().padStart(2, '0')}` 
-          : '';
-        const toD = filters.toDate instanceof Date 
-          ? `${filters.toDate.getFullYear()}-${(filters.toDate.getMonth() + 1).toString().padStart(2, '0')}-${filters.toDate.getDate().toString().padStart(2, '0')}` 
-          : '';
-        const supplierID = filters.SupplierID || '';
-        url += `&FromDate=${fromD}&ToDate=${toD}&SupplierID=${supplierID}&Status=S&UserID=${userID}&CompanyBranchID=${branchID}`;
-      } 
-      else {
-        Object.keys(filters).forEach(key => {
-          let val = filters[key];
-          if (key === 'dateRange' || key === 'toDateOnly') return;
-          if (val instanceof Date) {
-             const year = val.getFullYear();
-             const month = (val.getMonth() + 1).toString().padStart(2, '0');
-             const day = val.getDate().toString().padStart(2, '0');
-             val = `${year}-${month}-${day}`;
-          }
-          url += `&${key}=${val || ''}`;
-        });
-        url += `&UserID=${userID}&companyBranchID=${branchID}`;
-      }
-      console.log("telerick url: " +  url)
-      Linking.openURL(url).catch(err => console.error(err));
+      // ... baki logic
+      Linking.openURL(url);
+      */
     }
   };
 
   const handleRowPrint = async (item) => {
-    if (!config.rowPrintConfig) return;
-    try {
-      const { reportName, idParam, pk } = config.rowPrintConfig;
-      const idValue = item[pk]; 
-      const userJson = await AsyncStorage.getItem('userInfo');
-      const user = userJson ? JSON.parse(userJson) : null;
-      const userID = user?.UserID || '0';
-      const branchID = await AsyncStorage.getItem('companyBranchId') || '1';
-      let url = `${BASE_URL}ReportViewer.aspx?Report='${reportName}'` +
-                `&${idParam}=${idValue}` +
-                `&UserID=${userID}` +
-                `&CompanyBranchID=${branchID}`;
-      Linking.openURL(url).catch(err => Alert.alert("Error", "Could not open the print page."));
-    } catch (error) {
-      Alert.alert("Error", "An error occurred while preparing the print document.");
-    }
+    Alert.alert("Row Print", `Printing details for ID: ${item[config.pk || 'ID']} (Static Mode)`);
+    
+    /* // API WALA KAAM COMMIT
+    const { reportName, idParam, pk } = config.rowPrintConfig;
+    // ... logic
+    Linking.openURL(url);
+    */
   };
 
   const iconSize = isTablet ? 30 : 26;
@@ -151,7 +108,6 @@ const GenericReportScreen = ({ route, navigation }) => {
     <SafeAreaView style={styles.rootContainer} edges={['left' ,'right']}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
       
-      {/* HEADER */}
       <View style={[styles.header, { paddingTop: Platform.OS === 'ios' ? insets.top : 22 }]}>
         <View style={styles.headerLeft}>
           <TouchableOpacity onPress={openMenu} style={styles.menuButton}>
@@ -172,7 +128,6 @@ const GenericReportScreen = ({ route, navigation }) => {
       </View>
 
       <View style={styles.body}>
-        {/* ANIMATED COMPACT SIDEBAR */}
         <Animated.View style={[styles.sidebar, { width: animatedWidth }]}>
           <View style={{ width: SIDEBAR_MAX_WIDTH }}>
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.sidebarContent}>
@@ -229,7 +184,15 @@ const GenericReportScreen = ({ route, navigation }) => {
                         <Ionicons name={ICONS.dropdown} size={16} color={COLORS.primary} style={{ marginRight: 5 }} />
                         <Text style={styles.filterLabel}>{filter.label}</Text>
                       </View>
-                      <CustomDropdown label={filter.label} apiEndpoint={filter.api} valueField={filter.valueField} labelField={filter.labelField} value={filters[filter.key]} onChange={(val) => updateFilter(filter.key, val)} />
+                      {/* Note: CustomDropdown should also handle static data inside it */}
+                      <CustomDropdown 
+                        label={filter.label} 
+                        apiEndpoint={filter.api} 
+                        valueField={filter.valueField} 
+                        labelField={filter.labelField} 
+                        value={filters[filter.key]} 
+                        onChange={(val) => updateFilter(filter.key, val)} 
+                      />
                     </View>
                   );
                 }
@@ -252,12 +215,11 @@ const GenericReportScreen = ({ route, navigation }) => {
           </View>
         </Animated.View>
 
-        {/* MAIN GRID */}
         <Animated.View style={[styles.content, { opacity: isTablet ? 1 : contentOpacity }]}>
           {isLoading ? (
             <View style={styles.centerContainer}>
                 <ActivityIndicator size="large" color={COLORS.secondary} />
-                <Text style={styles.loadingText}>Loading data...</Text>
+                <Text style={styles.loadingText}>Loading static data...</Text>
             </View>
           ) : data.length > 0 ? (
             <DataGrid 
